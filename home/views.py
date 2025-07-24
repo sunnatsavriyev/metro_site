@@ -4,7 +4,7 @@ from rest_framework import viewsets, permissions, status, mixins,generics,  filt
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
- 
+from rest_framework.generics import ListAPIView
 from .models import (
     News, Comment, NewsImage,
     JobVacancy, StatisticData,
@@ -18,7 +18,7 @@ from .serializers import (
 )
 
 from .permissions import (
-    IsNewsEditorOrReadOnly, IsHRUser, IsStatistician, IsLostItemSupport
+    IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport
 )
 from rest_framework.permissions import IsAuthenticated
 
@@ -61,17 +61,21 @@ class NewsImageViewSet(viewsets.ModelViewSet):
     serializer_class = NewsImageSerializer
     permission_classes = [permissions.IsAdminUser]
 
+class LatestNewsListView(ListAPIView):
+   
+    queryset = News.objects.all().order_by('-publishedAt')[:10]
+    serializer_class = NewsSerializer
+    permission_classes = [permissions.AllowAny]
+
+
 
 # --- Job Vacancies (Kadrlar bo‘limi) ---
 class JobVacancyViewSet(viewsets.ModelViewSet):
     serializer_class = JobVacancySerializer
-    permission_classes = [IsHRUser]
+    permission_classes = [IsHRUserOrReadOnly]
 
     def get_queryset(self):
-        user = self.request.user
-        if user.is_authenticated and (user.is_hr or user.is_superuser):
-            return JobVacancy.objects.all() if user.is_superuser else JobVacancy.objects.filter(created_by=user)
-        return JobVacancy.objects.none()
+        return JobVacancy.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -80,17 +84,13 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
 # --- Statistic Data (Statistiklar) ---
 class StatisticDataViewSet(viewsets.ModelViewSet):
     serializer_class = StatisticDataSerializer
-    permission_classes = [IsAuthenticated, IsStatistician]
+    permission_classes = [ IsStatisticianOrReadOnly]
 
     def get_queryset(self):
-        user = self.request.user
-        # Superuser hamma statistikani ko‘radi
-        if user.is_authenticated and (user.is_statistician or user.is_superuser):
-            return StatisticData.objects.all()
-        return StatisticData.objects.none()
+        # Hamma ko‘ra oladi
+        return StatisticData.objects.all()
 
     def perform_create(self, serializer):
-        # created_by yo‘qligi uchun oddiy saqlash
         serializer.save()
 
 

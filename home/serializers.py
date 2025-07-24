@@ -4,21 +4,18 @@ from .models import (
     StatisticData, LostItemRequest, CustomUser
 )
 
-# --- Custom User ---
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ('id', 'username', 'email', 'role', 'is_staff', 'is_superuser')
 
 
-# --- News Image ---
 class NewsImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = NewsImage
         fields = ['id', 'image']
 
 
-# --- News Create ---
 class NewsCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
         child=serializers.ImageField(), write_only=True, required=False
@@ -40,7 +37,6 @@ class NewsCreateSerializer(serializers.ModelSerializer):
         return news
 
 
-# --- News Full Serializer (for list/detail) ---
 class NewsSerializer(serializers.ModelSerializer):
     images = NewsImageSerializer(many=True, read_only=True)
     like_count = serializers.IntegerField(read_only=True)
@@ -56,7 +52,6 @@ class NewsSerializer(serializers.ModelSerializer):
         ]
 
 
-# --- Comments ---
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
@@ -65,15 +60,13 @@ class CommentSerializer(serializers.ModelSerializer):
             'content_uz', 'content_ru', 'timestamp'
         ]
 
-
-# --- Job Vacancy ---
 class JobVacancySerializer(serializers.ModelSerializer):
     created_by = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = JobVacancy
         fields = [
-            'id', 'title_uz', 'title_ru', 'icon', 'color',
+            'id', 'title_uz', 'title_ru',
             'requirements_uz', 'requirements_ru',
             'benefits_uz', 'benefits_ru',
             'ageRange', 'category_uz', 'category_ru',
@@ -82,7 +75,6 @@ class JobVacancySerializer(serializers.ModelSerializer):
         read_only_fields = ['created_by']
 
 
-# --- Statistic Data ---
 class StatisticDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = StatisticData
@@ -90,7 +82,6 @@ class StatisticDataSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at']
 
 
-# --- Lost Item Request ---
 class LostItemRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostItemRequest

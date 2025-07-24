@@ -26,7 +26,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'home',
-
     'rest_framework',
     'rest_framework.authtoken',
     'dj_rest_auth',
@@ -45,6 +44,11 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
+
+
+
+
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Metro API',
@@ -158,3 +162,8 @@ JAZZMIN_SETTINGS = {
 }
 
 AUTH_USER_MODEL = 'home.CustomUser'
+
+
+
+
+
