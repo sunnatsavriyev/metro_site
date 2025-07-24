@@ -13,6 +13,7 @@ from .views import (
     StatisticDataViewSet,
     LostItemRequestCreateViewSet, 
     LostItemRequestSupportViewSet,
+    LatestNewsListView,
 )
 
 # Router viewset'lar uchun
