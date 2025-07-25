@@ -69,8 +69,7 @@ class JobVacancySerializer(serializers.ModelSerializer):
             'id', 'title_uz', 'title_ru',
             'requirements_uz', 'requirements_ru',
             'benefits_uz', 'benefits_ru',
-            'ageRange', 'category_uz', 'category_ru',
-            'salaryRange', 'created_by'
+            'ageRange', 'created_by'
         ]
         read_only_fields = ['created_by']
 

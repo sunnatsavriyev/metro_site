@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     CustomUser, News, NewsImage, Comment,
     JobVacancy, StatisticData,
-    LostItemRequest,
+    LostItemRequest,FoydalanuvchiStatistika
 )
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
@@ -55,7 +55,6 @@ class CustomUserAdmin(BaseUserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 
 
-# ---------- News ----------
 class NewsImageInline(admin.TabularInline):
     model = NewsImage
     extra = 1
@@ -71,7 +70,6 @@ class NewsAdmin(admin.ModelAdmin):
     inlines = [NewsImageInline]
 
 
-# ---------- Comment ----------
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     list_display = ['news', 'author_uz', 'author_ru', 'timestamp']
@@ -80,16 +78,13 @@ class CommentAdmin(admin.ModelAdmin):
     search_fields = ['author_uz', 'author_ru', 'content_uz', 'content_ru']
 
 
-# ---------- Job Vacancy ----------
 @admin.register(JobVacancy)
 class JobVacancyAdmin(admin.ModelAdmin):
-    list_display = ['title_uz', 'title_ru', 'category_uz', 'category_ru', 'salaryRange', 'created_by']
-    search_fields = ['title_uz', 'title_ru', 'category_uz', 'category_ru']
-    list_filter = ['category_uz', 'category_ru']
+    list_display = ['title_uz', 'title_ru', 'created_by']
+    search_fields = ['title_uz', 'title_ru']
     ordering = ['title_uz']
 
 
-# ---------- Statistic Data ----------
 @admin.register(StatisticData)
 class StatisticDataAdmin(admin.ModelAdmin):
     list_display = ['station_name', 'user_count', 'month', 'created_at']
@@ -97,10 +92,14 @@ class StatisticDataAdmin(admin.ModelAdmin):
     search_fields = ['station_name']
 
 
-# ---------- Lost Item Request ----------
 @admin.register(LostItemRequest)
 class LostItemRequestAdmin(admin.ModelAdmin):
     list_display = ['name_uz', 'name_ru', 'phone', 'email', 'created_at']
     search_fields = ['name_uz', 'name_ru', 'phone', 'email']
     list_filter = ['created_at']
     ordering = ['-created_at']
+
+
+@admin.register(FoydalanuvchiStatistika)
+class FoydalanuvchiStatistikaAdmin(admin.ModelAdmin):
+    list_display = ['jami_kirishlar', 'oxirgi_faollik']

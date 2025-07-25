@@ -13,7 +13,7 @@ from .views import (
     StatisticDataViewSet,
     LostItemRequestCreateViewSet, 
     LostItemRequestSupportViewSet,
-    LatestNewsListView,
+    LatestNewsListView,FoydalanuvchiStatistikaView
 )
 
 # Router viewset'lar uchun
@@ -44,5 +44,6 @@ urlpatterns = [
     path('auth/registration/', include('dj_rest_auth.registration.urls')),
 
     path('news/latest/', LatestNewsListView.as_view(), name='latest-news'),
+    path('sayt_foydalanuvchilari/', FoydalanuvchiStatistikaView.as_view(), name='foydalanuvchi-statistika'),
     
 ]

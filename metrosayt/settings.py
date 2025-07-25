@@ -71,6 +71,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'home.middleware.FoydalanuvchiStatMiddleware',
 ]
 
 ROOT_URLCONF = 'metrosayt.urls'
@@ -158,6 +159,7 @@ JAZZMIN_SETTINGS = {
         "socialaccount.socialapp": "fas fa-cogs",
         "socialaccount.socialtoken": "fas fa-key",
         "authtoken.Token": "fas fa-key",
+        "home.FoydalanuvchiStatistika": "fas fa-chart-bar",
     },
 }
 

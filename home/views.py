@@ -1,5 +1,4 @@
 # home/views.py
-
 from rest_framework import viewsets, permissions, status, mixins,generics,  filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,7 +7,7 @@ from rest_framework.generics import ListAPIView
 from .models import (
     News, Comment, NewsImage,
     JobVacancy, StatisticData,
-    LostItemRequest, 
+    LostItemRequest,FoydalanuvchiStatistika 
 )
 
 from .serializers import (
@@ -63,7 +62,7 @@ class NewsImageViewSet(viewsets.ModelViewSet):
 
 class LatestNewsListView(ListAPIView):
    
-    queryset = News.objects.all().order_by('-publishedAt')[:10]
+    queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = NewsSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -108,3 +107,18 @@ class LostItemRequestSupportViewSet(mixins.ListModelMixin, mixins.RetrieveModelM
     permission_classes = [IsAuthenticated, IsLostItemSupport]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
+
+
+
+class FoydalanuvchiStatistikaView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        stat = FoydalanuvchiStatistika.objects.first()
+        jami = stat.jami_kirishlar if stat else 0
+        onlayn = FoydalanuvchiStatistika.get_onlayn_foydalanuvchilar()
+
+        return Response({
+            "jami_foydalanuvchilar": jami,
+            "onlayn_foydalanuvchilar": onlayn
+        })
