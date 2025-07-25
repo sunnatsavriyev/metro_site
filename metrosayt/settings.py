@@ -162,7 +162,7 @@ JAZZMIN_SETTINGS = {
         "home.FoydalanuvchiStatistika": "fas fa-chart-bar",
     },
 }
-
+ALLOWED_HOSTS='127.0.0.1','localhost','metro-site.onrender'
 
 
 JAZZMIN_UI_TWEAKS = {
