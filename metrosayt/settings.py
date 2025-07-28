@@ -14,7 +14,6 @@ environ.Env.read_env(str(BASE_DIR / ".env"))
 # Asosiy sozlamalar
 SECRET_KEY = env("SECRET_KEY", default="changeme")
 DEBUG = env("DEBUG", default=True)
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 # Ilovalar
 INSTALLED_APPS = [
@@ -162,7 +161,7 @@ JAZZMIN_SETTINGS = {
         "home.FoydalanuvchiStatistika": "fas fa-chart-bar",
     },
 }
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'metro-site.onrender.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'metro-site.onrender.com', 'http://localhost:3000']
 
 
 JAZZMIN_UI_TWEAKS = {
