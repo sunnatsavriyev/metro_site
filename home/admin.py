@@ -63,25 +63,25 @@ class NewsImageInline(admin.TabularInline):
 
 @admin.register(News)
 class NewsAdmin(admin.ModelAdmin):
-    list_display = ['title_uz', 'title_ru', 'category_uz', 'category_ru', 'publishedAt', 'like_count']
-    list_filter = ['category_uz', 'category_ru']
+    list_display = ['title_uz', 'title_ru', 'title_en', 'category_uz', 'category_ru', 'category_en', 'publishedAt', 'like_count']
+    list_filter = ['category_uz', 'category_ru', 'category_en']
     ordering = ['-publishedAt']
-    search_fields = ['title_uz', 'title_ru', 'description_uz', 'description_ru']
+    search_fields = ['title_uz', 'title_ru', 'title_en', 'description_uz', 'description_ru', 'description_en']
     inlines = [NewsImageInline]
 
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ['news', 'author_uz', 'author_ru', 'timestamp']
+    list_display = ['news', 'author_uz', 'author_ru', 'author_en', 'timestamp']
     list_filter = ['timestamp']
     ordering = ['-timestamp']
-    search_fields = ['author_uz', 'author_ru', 'content_uz', 'content_ru']
+    search_fields = ['author_uz', 'author_ru', 'author_en', 'content_uz', 'content_ru', 'content_en']
 
 
 @admin.register(JobVacancy)
 class JobVacancyAdmin(admin.ModelAdmin):
-    list_display = ['title_uz', 'title_ru', 'created_by']
-    search_fields = ['title_uz', 'title_ru']
+    list_display = ['title_uz', 'title_ru', 'title_en', 'created_by']
+    search_fields = ['title_uz', 'title_ru', 'title_en']
     ordering = ['title_uz']
 
 
@@ -94,8 +94,8 @@ class StatisticDataAdmin(admin.ModelAdmin):
 
 @admin.register(LostItemRequest)
 class LostItemRequestAdmin(admin.ModelAdmin):
-    list_display = ['name_uz', 'name_ru', 'phone', 'email', 'created_at']
-    search_fields = ['name_uz', 'name_ru', 'phone', 'email']
+    list_display = ['name_uz', 'name_ru', 'name_en', 'phone', 'email', 'created_at']
+    search_fields = ['name_uz', 'name_ru', 'name_en', 'phone', 'email']
     list_filter = ['created_at']
     ordering = ['-created_at']
 
