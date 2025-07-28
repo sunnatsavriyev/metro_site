@@ -115,7 +115,6 @@ class StatisticData(models.Model):
         ('Texnopark', 'Texnopark'),
         ('Doʻstlik-2', 'Doʻstlik-2'),
         ('Sergeli', 'Sergeli'),
-        ('Afrosiyob', 'Afrosiyob'),
         ('Choshtepa', 'Choshtepa'),
         ('Turon', 'Turon'),
         ('Chinor', 'Chinor'),

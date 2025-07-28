@@ -66,7 +66,7 @@ class LatestNewsListView(ListAPIView):
     serializer_class = NewsSerializer
     permission_classes = [permissions.AllowAny]
 
-
+ 
 
 # --- Job Vacancies (Kadrlar bo‘limi) ---
 class JobVacancyViewSet(viewsets.ModelViewSet):
