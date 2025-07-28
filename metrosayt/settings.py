@@ -164,7 +164,7 @@ JAZZMIN_SETTINGS = {
 }
 # ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'metro-site.onrender.com', 'http://localhost:3000']
 CORS_ALLOW_ALL_ORIGINS = True
-
+ALLOWED_HOSTS = ['*']
 
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
