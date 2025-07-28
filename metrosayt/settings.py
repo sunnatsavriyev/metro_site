@@ -62,6 +62,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'allauth.account.middleware.AccountMiddleware',
@@ -161,7 +162,8 @@ JAZZMIN_SETTINGS = {
         "home.FoydalanuvchiStatistika": "fas fa-chart-bar",
     },
 }
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'metro-site.onrender.com', 'http://localhost:3000']
+# ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'metro-site.onrender.com', 'http://localhost:3000']
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 JAZZMIN_UI_TWEAKS = {
