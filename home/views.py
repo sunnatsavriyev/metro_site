@@ -68,14 +68,21 @@ class NewsViewSetEn(viewsets.ModelViewSet):
 
 
         
-# --- News Like ---
+# --- News Like ---class 
 class NewsLikeView(APIView):
     permission_classes = [permissions.AllowAny]  
 
+    # Like sonini olish
+    def get(self, request, pk):
+        news = get_object_or_404(News, pk=pk)
+        return Response({
+            "like_count": news.like_count
+        }, status=status.HTTP_200_OK)
+
+    # Like qo‘shish
     def post(self, request, pk):
         news = get_object_or_404(News, pk=pk)
 
-        # Har bosganda like sonini bittaga oshiramiz
         news.like_count += 1
         news.save(update_fields=["like_count"])
 
