@@ -11,47 +11,32 @@ from .views import (
     NewsLikeView,
     JobVacancyViewSetUz, JobVacancyViewSetRu, JobVacancyViewSetEn,
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
-    LostItemRequestCreateViewSetUz, LostItemRequestCreateViewSetRu, LostItemRequestCreateViewSetEn,
-    LostItemRequestSupportViewSetUz, LostItemRequestSupportViewSetRu, LostItemRequestSupportViewSetEn,
-    LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,FoydalanuvchiStatistikaView
+    LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn
 )
 
-# Uzbek routes
-router_uz = DefaultRouter()
-router_uz.register(r'news/uz', NewsViewSetUz, basename='news-uz')
-router_uz.register(r'comments/uz', CommentViewSetUz, basename='comments-uz')
-router_uz.register(r'job-vacancies/uz', JobVacancyViewSetUz, basename='jobvacancies-uz')
-router_uz.register(r'statistics/uz', StatisticDataViewSetUz, basename='statistics-uz')
-router_uz.register(r'lost-item/request/uz', LostItemRequestCreateViewSetUz, basename='lost-item-create-uz')
-router_uz.register(r'lost-item/support/uz', LostItemRequestSupportViewSetUz, basename='lost-item-support-uz')
 
-# Russian routes
-router_ru = DefaultRouter()
-router_ru.register(r'news/ru', NewsViewSetRu, basename='news-ru')
-router_ru.register(r'comments/ru', CommentViewSetRu, basename='comments-ru')
-router_ru.register(r'job-vacancies/ru', JobVacancyViewSetRu, basename='jobvacancies-ru')
-router_ru.register(r'statistics/ru', StatisticDataViewSetRu, basename='statistics-ru')
-router_ru.register(r'lost-item/request/ru', LostItemRequestCreateViewSetRu, basename='lost-item-create-ru')
-router_ru.register(r'lost-item/support/ru', LostItemRequestSupportViewSetRu, basename='lost-item-support-ru')
+router = DefaultRouter()
+# News / Comments / Vacancies / Statistics
+router.register(r'news/uz', NewsViewSetUz, basename='news-uz')
+router.register(r'news/ru', NewsViewSetRu, basename='news-ru')
+router.register(r'news/en', NewsViewSetEn, basename='news-en')
+router.register(r'comments/uz', CommentViewSetUz, basename='comments-uz')
+router.register(r'comments/ru', CommentViewSetRu, basename='comments-ru')
+router.register(r'comments/en', CommentViewSetEn, basename='comments-en')
+router.register(r'job-vacancies/uz', JobVacancyViewSetUz, basename='job-vacancies-uz')
+router.register(r'job-vacancies/ru', JobVacancyViewSetRu, basename='job-vacancies-ru')
+router.register(r'job-vacancies/en', JobVacancyViewSetEn, basename='job-vacancies-en')
+router.register(r'statistics/uz', StatisticDataViewSetUz, basename='statistics-uz')
+router.register(r'statistics/ru', StatisticDataViewSetRu, basename='statistics-ru')
+router.register(r'statistics/en', StatisticDataViewSetEn, basename='statistics-en')
 
-# English routes
-router_en = DefaultRouter()
-router_en.register(r'news/en', NewsViewSetEn, basename='news-en')
-router_en.register(r'comments/en', CommentViewSetEn, basename='comments-en')
-router_en.register(r'job-vacancies/en', JobVacancyViewSetEn, basename='jobvacancies-en')
-router_en.register(r'statistics/en', StatisticDataViewSetEn, basename='statistics-en')
-router_en.register(r'lost-item/request/en', LostItemRequestCreateViewSetEn, basename='lost-item-create-en')
-router_en.register(r'lost-item/support/en', LostItemRequestSupportViewSetEn, basename='lost-item-support-en')
+# Lost items
+router.register(r'lost-items', LostItemRequestViewSet, basename='lost-items')
 
 urlpatterns = [
     # Uzbek API endpoints
-    path('', include(router_uz.urls)),
 
-    # Russian API endpoints
-    path('', include(router_ru.urls)),
-
-    # English API endpoints
-    path('', include(router_en.urls)),
+    path('', include(router.urls)),
 
     # Like endpoint (tilga bog‘liq emas)
     path('news/<int:pk>/like/', NewsLikeView.as_view(), name='news-like'),

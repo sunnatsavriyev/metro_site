@@ -16,8 +16,8 @@ from .serializers import (
     CommentSerializerUz, CommentSerializerRu, CommentSerializerEn,
     NewsImageSerializer,
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
-    StatisticDataSerializerUz, StatisticDataSerializerRu, StatisticDataSerializerEn,
-    LostItemRequestSerializerUz, LostItemRequestSerializerRu, LostItemRequestSerializerEn,
+    StatisticDataSerializer, StatisticDataWriteSerializer,
+    LostItemRequestSerializer,
 )
 
 from .permissions import (
@@ -37,7 +37,7 @@ class NewsViewSetUz(viewsets.ModelViewSet):
         return NewsSerializerUz
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        serializer.save()
 
 
 class NewsViewSetRu(viewsets.ModelViewSet):
@@ -50,7 +50,7 @@ class NewsViewSetRu(viewsets.ModelViewSet):
         return NewsSerializerRu
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        serializer.save()
 
 
 class NewsViewSetEn(viewsets.ModelViewSet):
@@ -63,7 +63,8 @@ class NewsViewSetEn(viewsets.ModelViewSet):
         return NewsSerializerEn
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        serializer.save()
+
 
 
         
@@ -160,88 +161,70 @@ class JobVacancyViewSetEn(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
-
-# --- Statistic Data (Statistiklar) ---
+# Uzbek view
 class StatisticDataViewSetUz(viewsets.ModelViewSet):
-    serializer_class = StatisticDataSerializerUz
-    permission_classes = [ IsStatisticianOrReadOnly]
+    permission_classes = [IsStatisticianOrReadOnly]
 
     def get_queryset(self):
-        # Hamma ko‘ra oladi
         return StatisticData.objects.all()
 
-    def perform_create(self, serializer):
-        serializer.save()
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return StatisticDataWriteSerializer
+        return StatisticDataSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['lang'] = 'uz'
+        return context
 
 
-
+# Russian view
 class StatisticDataViewSetRu(viewsets.ModelViewSet):
-    serializer_class = StatisticDataSerializerRu
     permission_classes = [IsStatisticianOrReadOnly]
 
     def get_queryset(self):
         return StatisticData.objects.all()
 
-    def perform_create(self, serializer):
-        serializer.save()
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return StatisticDataWriteSerializer
+        return StatisticDataSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['lang'] = 'ru'
+        return context
 
 
+# English view
 class StatisticDataViewSetEn(viewsets.ModelViewSet):
-    serializer_class = StatisticDataSerializerEn
     permission_classes = [IsStatisticianOrReadOnly]
 
     def get_queryset(self):
         return StatisticData.objects.all()
 
-    def perform_create(self, serializer):
-        serializer.save()
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return StatisticDataWriteSerializer
+        return StatisticDataSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['lang'] = 'en'
+        return context
 
 
 
 
-class LostItemRequestCreateViewSetUz(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = LostItemRequest.objects.all()
-    serializer_class = LostItemRequestSerializerUz
-    permission_classes = [permissions.AllowAny]  
-
-
-
-class LostItemRequestCreateViewSetRu(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = LostItemRequest.objects.all()
-    serializer_class = LostItemRequestSerializerRu
-    permission_classes = [permissions.AllowAny]
-
-
-class LostItemRequestCreateViewSetEn(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = LostItemRequest.objects.all()
-    serializer_class = LostItemRequestSerializerEn
-    permission_classes = [permissions.AllowAny]
-
-
-
-
-class LostItemRequestSupportViewSetUz(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class LostItemRequestViewSet(viewsets.ModelViewSet):
     queryset = LostItemRequest.objects.all().order_by('-created_at')
-    serializer_class = LostItemRequestSerializerUz
-    permission_classes = [IsAuthenticated, IsLostItemSupport]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
+    serializer_class = LostItemRequestSerializer
 
-
-class LostItemRequestSupportViewSetRu(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    queryset = LostItemRequest.objects.all().order_by('-created_at')
-    serializer_class = LostItemRequestSerializerRu
-    permission_classes = [IsAuthenticated, IsLostItemSupport]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name_ru']
-
-
-class LostItemRequestSupportViewSetEn(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    queryset = LostItemRequest.objects.all().order_by('-created_at')
-    serializer_class = LostItemRequestSerializerEn
-    permission_classes = [IsAuthenticated, IsLostItemSupport]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name_en']
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
 
 

@@ -198,8 +198,7 @@ class JobVacancySerializerEn(serializers.ModelSerializer):
         read_only_fields = ['created_by']
 
 
-
-class StatisticDataSerializerUz(serializers.ModelSerializer):
+class StatisticDataSerializer(serializers.ModelSerializer):
     station_name = serializers.SerializerMethodField()
     month = serializers.SerializerMethodField()
 
@@ -208,78 +207,30 @@ class StatisticDataSerializerUz(serializers.ModelSerializer):
         fields = ['id', 'station_name', 'user_count', 'month', 'created_at']
         read_only_fields = ['created_at']
 
+    # --- O‘qish uchun tarjima ---
     def get_station_name(self, obj):
-        return obj.get_station_translation('uz')
+        lang = self.context.get('lang', 'uz')  # default uz
+        return obj.get_station_translation(lang)
 
     def get_month(self, obj):
-        return obj.get_month_translation('uz')
+        lang = self.context.get('lang', 'uz')
+        return obj.get_month_translation(lang)
 
 
-class StatisticDataSerializerRu(serializers.ModelSerializer):
-    station_name = serializers.SerializerMethodField()
-    month = serializers.SerializerMethodField()
-
+class StatisticDataWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = StatisticData
-        fields = ['id', 'station_name', 'user_count', 'month', 'created_at']
-        read_only_fields = ['created_at']
-
-    def get_station_name(self, obj):
-        return obj.get_station_translation('ru')
-
-    def get_month(self, obj):
-        return obj.get_month_translation('ru')
+        fields = ['station_name', 'user_count', 'month']
 
 
-class StatisticDataSerializerEn(serializers.ModelSerializer):
-    station_name = serializers.SerializerMethodField()
-    month = serializers.SerializerMethodField()
-
-    class Meta:
-        model = StatisticData
-        fields = ['id', 'station_name', 'user_count', 'month', 'created_at']
-        read_only_fields = ['created_at']
-
-    def get_station_name(self, obj):
-        return obj.get_station_translation('en')
-
-    def get_month(self, obj):
-        return obj.get_month_translation('en')
-
-
-
-class LostItemRequestSerializerUz(serializers.ModelSerializer):
+class LostItemRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostItemRequest
         fields = [
-            'id', 'name_uz',
+            'id',
+            'name_uz', 'name_ru', 'name_en',
             'phone', 'email',
-            'message_uz', 
+            'message_uz', 'message_ru', 'message_en',
             'created_at'
         ]
         read_only_fields = ['created_at']
-
-
-class LostItemRequestSerializerRu(serializers.ModelSerializer):
-    class Meta:
-        model = LostItemRequest
-        fields = [
-            'id', 'name_ru',
-            'phone', 'email',
-            'message_ru', 
-            'created_at'
-        ]
-        read_only_fields = ['created_at']
-
-
-class LostItemRequestSerializerEn(serializers.ModelSerializer):
-    class Meta:
-        model = LostItemRequest
-        fields = [
-            'id', 'name_en',
-            'phone', 'email',
-            'message_en', 
-            'created_at'
-        ]
-        read_only_fields = ['created_at']
-        
