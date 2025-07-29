@@ -54,12 +54,7 @@ class News(models.Model):
         default=timezone.now
     )
 
-    likes = models.ManyToManyField(
-        CustomUser,
-        related_name='liked_news',
-        blank=True,
-        verbose_name="Layklar / Лайки / Likes"
-    )
+    like_count = models.PositiveIntegerField(default=0, verbose_name="Likes soni")
 
     category_uz = models.CharField("Kategoriya (uz)", max_length=100, blank=True, null=True)
     category_ru = models.CharField("Категория (ru)", max_length=100, blank=True, null=True)
@@ -68,8 +63,6 @@ class News(models.Model):
     def __str__(self):
         return self.title_uz or self.title_ru or self.title_en or "No title"
 
-    def like_count(self):
-        return self.likes.count()
 
 
 class NewsImage(models.Model):
@@ -256,7 +249,8 @@ class FoydalanuvchiStatistika(models.Model):
 
     @staticmethod
     def get_onlayn_foydalanuvchilar():
-        vaqt_chegarasi = timezone.now() - timedelta(minutes=5)
+        # 5 soniya ichida faol bo‘lgan sessiyalar
+        vaqt_chegarasi = timezone.now() - timedelta(minutes=1)
         return SessiyaIzlovi.objects.filter(oxirgi_harakat__gte=vaqt_chegarasi).count()
 
 

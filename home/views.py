@@ -70,26 +70,18 @@ class NewsViewSetEn(viewsets.ModelViewSet):
         
 # --- News Like ---
 class NewsLikeView(APIView):
+    permission_classes = [permissions.AllowAny]  
+
     def post(self, request, pk):
         news = get_object_or_404(News, pk=pk)
 
-        # Foydalanuvchi login bo‘lmagan bo‘lsa
-        if not request.user.is_authenticated:
-            return Response({"detail": "Login required"}, status=status.HTTP_401_UNAUTHORIZED)
-
-        user = request.user
-
-        # Agar user allaqachon like qilgan bo‘lsa, remove qilamiz
-        if news.likes.filter(id=user.id).exists():
-            news.likes.remove(user)
-            message = "Unliked!"
-        else:
-            news.likes.add(user)
-            message = "Liked!"
+        # Har bosganda like sonini bittaga oshiramiz
+        news.like_count += 1
+        news.save(update_fields=["like_count"])
 
         return Response({
-            "message": message,
-            "likes_count": news.likes.count()
+            "message": "Liked!",
+            "like_count": news.like_count
         }, status=status.HTTP_200_OK)
 
 
