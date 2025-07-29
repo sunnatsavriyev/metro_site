@@ -214,10 +214,17 @@ class StatisticData(models.Model):
         return f"{self.get_station_name_display()} ({self.get_month_display()}) - {self.user_count} ta odam"
 
     def get_station_translation(self, lang):
-        return self.STATION_TRANSLATIONS[self.station_name][lang]
+        translations = self.STATION_TRANSLATIONS.get(self.station_name)
+        if not translations:
+            return self.station_name  # yoki ''
+        return translations.get(lang, self.station_name)
 
     def get_month_translation(self, lang):
-        return self.MONTH_TRANSLATIONS[self.month][lang]
+        translations = self.MONTH_TRANSLATIONS.get(self.month)
+        if not translations:
+            return self.month
+        return translations.get(lang, self.month)
+
 
 
 # -------------------- LostItemRequest --------------------

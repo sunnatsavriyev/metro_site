@@ -216,12 +216,14 @@ class StatisticDataSerializer(serializers.ModelSerializer):
         lang = self.context.get('lang', 'uz')
         return obj.get_month_translation(lang)
 
-
 class StatisticDataWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = StatisticData
         fields = ['station_name', 'user_count', 'month']
-
+        extra_kwargs = {
+            'station_name': {'required': True},
+            'month': {'required': True},
+        }
 
 class LostItemRequestSerializer(serializers.ModelSerializer):
     class Meta:
