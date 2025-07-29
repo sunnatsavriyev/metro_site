@@ -70,13 +70,27 @@ class NewsViewSetEn(viewsets.ModelViewSet):
         
 # --- News Like ---
 class NewsLikeView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
     def post(self, request, pk):
         news = get_object_or_404(News, pk=pk)
-        news.likes += 1
-        news.save()
-        return Response({"message": "Liked!"}, status=status.HTTP_200_OK)
+
+        # Foydalanuvchi login bo‘lmagan bo‘lsa
+        if not request.user.is_authenticated:
+            return Response({"detail": "Login required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = request.user
+
+        # Agar user allaqachon like qilgan bo‘lsa, remove qilamiz
+        if news.likes.filter(id=user.id).exists():
+            news.likes.remove(user)
+            message = "Unliked!"
+        else:
+            news.likes.add(user)
+            message = "Liked!"
+
+        return Response({
+            "message": message,
+            "likes_count": news.likes.count()
+        }, status=status.HTTP_200_OK)
 
 
 # --- Comments ---
@@ -228,8 +242,9 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
 
 
 
+
 class FoydalanuvchiStatistikaView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny]  
 
     def get(self, request):
         stat = FoydalanuvchiStatistika.objects.first()

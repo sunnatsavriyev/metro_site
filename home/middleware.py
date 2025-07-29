@@ -10,11 +10,11 @@ class FoydalanuvchiStatMiddleware(MiddlewareMixin):
             request.session.create()
             session_id = request.session.session_key
 
-        # Sessiya mavjudmi tekshiramiz
+        # Sessiya mavjudligini tekshirish
         sessiya, yaratildi = SessiyaIzlovi.objects.get_or_create(sessiya_id=session_id)
 
         if yaratildi:
-            # Faqat yangi sessiya bo‘lsa jami kirishlar sonini oshiramiz
+            # Yangi sessiya bo‘lsa jami kirishlar sonini oshirish
             statistika, _ = FoydalanuvchiStatistika.objects.get_or_create(id=1)
             statistika.jami_kirishlar += 1
             statistika.save()

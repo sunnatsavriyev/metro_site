@@ -248,14 +248,8 @@ class LostItemRequest(models.Model):
 
 # -------------------- FoydalanuvchiStatistika --------------------
 class FoydalanuvchiStatistika(models.Model):
-    jami_kirishlar = models.PositiveIntegerField(
-        default=0,
-        verbose_name="Jami kirishlar / Всего входов / Total Logins"
-    )
-    oxirgi_faollik = models.DateTimeField(
-        auto_now=True,
-        verbose_name="Oxirgi yangilanish / Последнее обновление / Last Update"
-    )
+    jami_kirishlar = models.PositiveIntegerField(default=0)
+    oxirgi_faollik = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Jami kirishlar: {self.jami_kirishlar}"
@@ -267,13 +261,9 @@ class FoydalanuvchiStatistika(models.Model):
 
 
 class SessiyaIzlovi(models.Model):
-    sessiya_id = models.CharField("Sessiya ID", max_length=100, unique=True)
-    oxirgi_harakat = models.DateTimeField(
-        "Oxirgi harakat / Последнее действие / Last Activity",
-        auto_now=True
-    )
+    sessiya_id = models.CharField(max_length=100, unique=True)
+    oxirgi_harakat = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Sessiya: {self.sessiya_id} ({self.oxirgi_harakat})"
-
  
