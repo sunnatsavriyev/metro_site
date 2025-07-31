@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     CustomUser, News, NewsImage, Comment,
     JobVacancy,JobVacancyRequest, StatisticData,
-    LostItemRequest,FoydalanuvchiStatistika, Station, StationImage, StationVideo
+    LostItemRequest,FoydalanuvchiStatistika
 )
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
@@ -100,8 +100,8 @@ class StatisticDataAdmin(admin.ModelAdmin):
 
 @admin.register(LostItemRequest)
 class LostItemRequestAdmin(admin.ModelAdmin):
-    list_display = ['name_uz', 'name_ru', 'name_en', 'phone', 'email', 'created_at']
-    search_fields = ['name_uz', 'name_ru', 'name_en', 'phone', 'email']
+    list_display = ['name', 'phone', 'email', 'address', 'passport', 'created_at']
+    search_fields = ['name', 'phone', 'email', 'passport']
     list_filter = ['created_at']
     ordering = ['-created_at']
 
@@ -112,24 +112,3 @@ class FoydalanuvchiStatistikaAdmin(admin.ModelAdmin):
 
 
 
-
-class StationImageInline(admin.TabularInline):
-    model = StationImage
-    extra = 1
-
-class StationVideoInline(admin.TabularInline):
-    model = StationVideo
-    extra = 1
-
-@admin.register(Station)
-class StationAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    inlines = [StationImageInline, StationVideoInline]
-
-@admin.register(StationImage)
-class StationImageAdmin(admin.ModelAdmin):
-    list_display = ('station', 'image')
-
-@admin.register(StationVideo)
-class StationVideoAdmin(admin.ModelAdmin):
-    list_display = ('station', 'title', 'url')

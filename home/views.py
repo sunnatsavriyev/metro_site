@@ -7,9 +7,9 @@ from rest_framework.generics import ListAPIView
 from .models import (
     News, Comment, NewsImage,
     JobVacancy,JobVacancyRequest, StatisticData,
-    LostItemRequest,FoydalanuvchiStatistika,Station, StationImage, StationVideo
+    LostItemRequest,FoydalanuvchiStatistika
 )
-
+from .throttles import LostItemBurstRateThrottle
 from .serializers import (
     NewsCreateSerializerRu, NewsCreateSerializerUz, NewsCreateSerializerEn,
     NewsSerializerUz, NewsSerializerRu, NewsSerializerEn,
@@ -18,7 +18,7 @@ from .serializers import (
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
     JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer,StationSerializer
+    LostItemRequestSerializer
 )
 
 from .permissions import (
@@ -307,6 +307,7 @@ class StatisticDataViewSetEn(viewsets.ModelViewSet):
 class LostItemRequestViewSet(viewsets.ModelViewSet):
     queryset = LostItemRequest.objects.all().order_by('-created_at')
     serializer_class = LostItemRequestSerializer
+    throttle_classes = [LostItemBurstRateThrottle]
 
     def get_permissions(self):
         if self.action == 'create':
@@ -335,19 +336,3 @@ class FoydalanuvchiStatistikaView(APIView):
 class IsAdminUserOnly(BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_staff  
-
-class StationViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Station.objects.all()
-    serializer_class = StationSerializer
-    permission_classes = [IsAdminUserOnly]  # faqat admin
-
-    def list(self, request):
-        stations = self.get_queryset()
-        result = {}
-        for station in stations:
-            serialized = self.get_serializer(station).data
-            result[serialized['name']] = {
-                "images": serialized['images'],
-                "videos": serialized['videos']
-            }
-        return Response(result)

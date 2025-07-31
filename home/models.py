@@ -275,21 +275,19 @@ class StatisticData(models.Model):
 
 # -------------------- LostItemRequest --------------------
 class LostItemRequest(models.Model):
-    name_uz = models.CharField("Ism (uz)", max_length=100, blank=True, null=True)
-    name_ru = models.CharField("Имя (ru)", max_length=100, blank=True, null=True)
-    name_en = models.CharField("Name (en)", max_length=100, blank=True, null=True)
+    name = models.CharField("Ism", max_length=100, blank=True, null=True)
 
-    phone = models.CharField("Telefon / Телефон / Phone", max_length=20, blank=True, null=True)
+    phone = models.CharField("Telefon", max_length=20, blank=True, null=True)
     email = models.EmailField("Email", blank=True, null=True)
 
-    message_uz = models.TextField("Xabar (uz)", blank=True, null=True)
-    message_ru = models.TextField("Сообщение (ru)", blank=True, null=True)
-    message_en = models.TextField("Message (en)", blank=True, null=True)
+    address = models.CharField("Manzil", max_length=255, blank=True, null=True)
+    passport = models.CharField("Passport", max_length=9, blank=True, null=True)
 
-    created_at = models.DateTimeField("Qo‘shilgan vaqt / Дата добавления / Created At", auto_now_add=True)
+    message = models.TextField("Xabar", blank=True, null=True)
+    created_at = models.DateTimeField("Qo‘shilgan vaqt", auto_now_add=True)
 
     def __str__(self):
-        return f"Yo‘qolgan buyum: {self.name_uz or self.name_ru or self.name_en}"
+        return f"Yo‘qolgan buyum: {self.name_uz}"
 
 
 # -------------------- FoydalanuvchiStatistika --------------------
@@ -316,31 +314,3 @@ class SessiyaIzlovi(models.Model):
  
 
 
-
-class Station(models.Model):
-    name = models.CharField("Bekat nomi", max_length=150, unique=True)
-
-    def __str__(self):
-        return self.name
-
-
-class StationImage(models.Model):
-    station = models.ForeignKey(
-        Station, related_name='images', on_delete=models.CASCADE
-    )
-    image = models.ImageField(upload_to='stations/images/')
-
-    def __str__(self):
-        return f"{self.station.name} - {self.image.name}"
-
-
-class StationVideo(models.Model):
-    station = models.ForeignKey(
-        Station, related_name='videos', on_delete=models.CASCADE
-    )
-    title = models.CharField("Video nomi", max_length=200)
-    url = models.URLField("YouTube URL")
-    thumbnail = models.URLField("Video preview rasmi", blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.station.name} - {self.title}"

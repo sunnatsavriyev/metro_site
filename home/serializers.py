@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     News, Comment, NewsImage, JobVacancy,JobVacancyRequest,
-    StatisticData, LostItemRequest, CustomUser, Station, StationImage, StationVideo
+    StatisticData, LostItemRequest, CustomUser
 )
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -409,35 +409,16 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
         model = LostItemRequest
         fields = [
             'id',
-            'name_uz', 'name_ru', 'name_en',
+            'name', 
             'phone', 'email',
-            'message_uz', 'message_ru', 'message_en',
+            'address',
+            'passport',
+            'message', 
             'created_at'
         ]
         read_only_fields = ['created_at']
 
 
-
-class StationSerializer(serializers.ModelSerializer):
-    images = serializers.SerializerMethodField()
-    videos = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Station
-        fields = ['name', 'images', 'videos']
-
-    def get_images(self, obj):
-        return [image.image.url for image in obj.images.all()]
-
-    def get_videos(self, obj):
-        return [
-            {
-                "title": video.title,
-                "url": video.url,
-                "thumbnail": video.thumbnail,
-            }
-            for video in obj.videos.all()
-        ]
 
 
 

@@ -13,7 +13,7 @@ from .views import (
     JobVacancyRequestViewSetUz, JobVacancyRequestViewSetRu, JobVacancyRequestViewSetEn,
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
     LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
-    StationViewSet
+    
 )
 
 
@@ -34,7 +34,6 @@ router.register(r'job-vacancy-requests/en', JobVacancyRequestViewSetEn, basename
 router.register(r'statistics/uz', StatisticDataViewSetUz, basename='statistics-uz')
 router.register(r'statistics/ru', StatisticDataViewSetRu, basename='statistics-ru')
 router.register(r'statistics/en', StatisticDataViewSetEn, basename='statistics-en')
-router.register(r'stations', StationViewSet, basename='stations')
 
 # Lost items
 router.register(r'lost-items', LostItemRequestViewSet, basename='lost-items')
