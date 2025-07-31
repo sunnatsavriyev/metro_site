@@ -287,7 +287,7 @@ class LostItemRequest(models.Model):
     created_at = models.DateTimeField("Qo‘shilgan vaqt", auto_now_add=True)
 
     def __str__(self):
-        return f"Yo‘qolgan buyum: {self.name_uz}"
+        return f"Yo‘qolgan buyum: {self.name}"
 
 
 # -------------------- FoydalanuvchiStatistika --------------------
