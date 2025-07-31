@@ -6,8 +6,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.generics import ListAPIView
 from .models import (
     News, Comment, NewsImage,
-    JobVacancy, StatisticData,
-    LostItemRequest,FoydalanuvchiStatistika 
+    JobVacancy,JobVacancyRequest, StatisticData,
+    LostItemRequest,FoydalanuvchiStatistika,Station, StationImage, StationVideo
 )
 
 from .serializers import (
@@ -16,15 +16,16 @@ from .serializers import (
     CommentSerializerUz, CommentSerializerRu, CommentSerializerEn,
     NewsImageSerializer,
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
+    JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer,
+    LostItemRequestSerializer,StationSerializer
 )
 
 from .permissions import (
     IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport
 )
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework.permissions import BasePermission
 # --- News ---
 
 class NewsViewSetUz(viewsets.ModelViewSet):
@@ -174,6 +175,79 @@ class JobVacancyViewSetEn(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
+# views.py
+# ------- Uzbekcha Viewset -------
+class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
+    queryset = JobVacancyRequest.objects.all().order_by('-created_at')
+
+    def get_serializer_class(self):
+        return JobVacancyRequestSerializerUz
+
+    def get_permissions(self):
+        # GET/PATCH/DELETE faqat HR yoki Admin uchun
+        if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
+            return [IsHRUserOrReadOnly()]
+        # POST hammaga ruxsat
+        return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        # Login qilmaganlar va oddiy userlar ko‘ra olmaydi
+        if not self.request.user.is_authenticated:
+            return JobVacancyRequest.objects.none()
+        if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
+            return JobVacancyRequest.objects.all().order_by('-created_at')
+        return JobVacancyRequest.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(status='pending')
+
+
+# ------- Ruscha Viewset -------
+class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
+    queryset = JobVacancyRequest.objects.all().order_by('-created_at')
+
+    def get_serializer_class(self):
+        return JobVacancyRequestSerializerRu
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
+            return [IsHRUserOrReadOnly()]
+        return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return JobVacancyRequest.objects.none()
+        if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
+            return JobVacancyRequest.objects.all().order_by('-created_at')
+        return JobVacancyRequest.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(status='pending')
+
+
+# ------- Inglizcha Viewset -------
+class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
+    queryset = JobVacancyRequest.objects.all().order_by('-created_at')
+
+    def get_serializer_class(self):
+        return JobVacancyRequestSerializerEn
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
+            return [IsHRUserOrReadOnly()]
+        return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return JobVacancyRequest.objects.none()
+        if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
+            return JobVacancyRequest.objects.all().order_by('-created_at')
+        return JobVacancyRequest.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(status='pending')
+
+
 # Uzbek view
 class StatisticDataViewSetUz(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
@@ -254,3 +328,26 @@ class FoydalanuvchiStatistikaView(APIView):
             "jami_foydalanuvchilar": jami,
             "onlayn_foydalanuvchilar": onlayn
         })
+
+
+
+
+class IsAdminUserOnly(BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_staff  
+
+class StationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Station.objects.all()
+    serializer_class = StationSerializer
+    permission_classes = [IsAdminUserOnly]  # faqat admin
+
+    def list(self, request):
+        stations = self.get_queryset()
+        result = {}
+        for station in stations:
+            serialized = self.get_serializer(station).data
+            result[serialized['name']] = {
+                "images": serialized['images'],
+                "videos": serialized['videos']
+            }
+        return Response(result)

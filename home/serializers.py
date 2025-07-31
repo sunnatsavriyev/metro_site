@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
-    News, Comment, NewsImage, JobVacancy,
-    StatisticData, LostItemRequest, CustomUser
+    News, Comment, NewsImage, JobVacancy,JobVacancyRequest,
+    StatisticData, LostItemRequest, CustomUser, Station, StationImage, StationVideo
 )
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -155,47 +155,226 @@ class CommentSerializerEn(serializers.ModelSerializer):
 
 
 class JobVacancySerializerUz(serializers.ModelSerializer):
-    created_by = CustomUserSerializer(read_only=True)
+    total_requests = serializers.SerializerMethodField()
+    answered_requests = serializers.SerializerMethodField()
+    rejected_requests = serializers.SerializerMethodField()
+    pending_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = JobVacancy
         fields = [
-            'id', 'title_uz',
-            'requirements_uz',
-            'benefits_uz',
-            'ageRange', 'created_by'
+            'id', 'title_uz', 'requirements_uz', 'mutaxasislik_uz',
+            'education_status_uz', 'created_by',
+            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
         ]
-        read_only_fields = ['created_by']
+
+    def get_total_requests(self, obj):
+        return obj.requests.count()
+
+    def get_answered_requests(self, obj):
+        return obj.requests.filter(status='answered').count()
+
+    def get_rejected_requests(self, obj):
+        return obj.requests.filter(status='rejected').count()
+
+    def get_pending_requests(self, obj):
+        return obj.requests.filter(status='pending').count()
 
 
 
 class JobVacancySerializerRu(serializers.ModelSerializer):
-    created_by = CustomUserSerializer(read_only=True)
+    total_requests = serializers.SerializerMethodField()
+    answered_requests = serializers.SerializerMethodField()
+    rejected_requests = serializers.SerializerMethodField()
+    pending_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = JobVacancy
         fields = [
-            'id', 'title_ru',
-            'requirements_ru',
-            'benefits_ru',
-            'ageRange', 'created_by'
+            'id', 'title_ru', 'requirements_ru', 'mutaxasislik_ru',
+            'education_status_ru', 'created_by',
+            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
         ]
-        read_only_fields = ['created_by']
+
+    def get_total_requests(self, obj):
+        return obj.requests.count()
+
+    def get_answered_requests(self, obj):
+        return obj.requests.filter(status='answered').count()
+
+    def get_rejected_requests(self, obj):
+        return obj.requests.filter(status='rejected').count()
+
+    def get_pending_requests(self, obj):
+        return obj.requests.filter(status='pending').count()
 
 
 
 class JobVacancySerializerEn(serializers.ModelSerializer):
-    created_by = CustomUserSerializer(read_only=True)
+    total_requests = serializers.SerializerMethodField()
+    answered_requests = serializers.SerializerMethodField()
+    rejected_requests = serializers.SerializerMethodField()
+    pending_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = JobVacancy
         fields = [
-            'id', 'title_en',
-            'requirements_en',
-            'benefits_en',
-            'ageRange', 'created_by'
+            'id', 'title_en', 'requirements_en', 'mutaxasislik_en',
+            'education_status_en', 'created_by',
+            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
         ]
-        read_only_fields = ['created_by']
+
+    def get_total_requests(self, obj):
+        return obj.requests.count()
+
+    def get_answered_requests(self, obj):
+        return obj.requests.filter(status='answered').count()
+
+    def get_rejected_requests(self, obj):
+        return obj.requests.filter(status='rejected').count()
+
+    def get_pending_requests(self, obj):
+        return obj.requests.filter(status='pending').count()
+
+# serializers.py
+
+
+# ----------------Uzbek----------------
+class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
+    status_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = JobVacancyRequest
+        fields = [
+            'id', 'jobVacancy', 'name_uz', 'phone', 'email', 'file',
+            'status', 'status_display', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+
+    def get_status_display(self, obj):
+        mapping = {
+            'pending': "Ko'rilmoqda",
+            'answered': "Javob berilgan",
+            'rejected': "Rad etilgan",
+        }
+        return mapping.get(obj.status, obj.status)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+
+        # Agar foydalanuvchi HR yoki Admin bo‘lmasa — status yashiriladi
+        if not request or not request.user.is_authenticated or (
+            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+        ):
+            data.pop('status', None)
+            data.pop('status_display', None)
+
+        return data
+
+    def get_fields(self):
+        """Browsable API formasi uchun statusni yashirish"""
+        fields = super().get_fields()
+        request = self.context.get('request')
+
+        if not request or not request.user.is_authenticated or (
+            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+        ):
+            fields.pop('status', None)
+        return fields
+
+
+# ----------------Ruscha----------------
+class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
+    status_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = JobVacancyRequest
+        fields = [
+            'id', 'jobVacancy', 'name_ru', 'phone', 'email', 'file',
+            'status', 'status_display', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+
+    def get_status_display(self, obj):
+        mapping = {
+            'pending': "Рассматривается",
+            'answered': "Ответ дан",
+            'rejected': "Отклонено",
+        }
+        return mapping.get(obj.status, obj.status)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+
+        # Agar foydalanuvchi HR yoki Admin bo‘lmasa — status yashiriladi
+        if not request or not request.user.is_authenticated or (
+            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+        ):
+            data.pop('status', None)
+            data.pop('status_display', None)
+
+        return data
+
+    def get_fields(self):
+        """Browsable API formasi uchun statusni yashirish"""
+        fields = super().get_fields()
+        request = self.context.get('request')
+
+        if not request or not request.user.is_authenticated or (
+            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+        ):
+            fields.pop('status', None)
+        return fields
+
+
+
+# ---------------- Inglizcha ----------------
+class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
+    status_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = JobVacancyRequest
+        fields = [
+            'id', 'jobVacancy', 'name_en', 'phone', 'email', 'file',
+            'status', 'status_display', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+
+    def get_status_display(self, obj):
+        mapping = {
+            'pending': "pending",
+            'answered': "answered",
+            'rejected': "rejected",
+        }
+        return mapping.get(obj.status, obj.status)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+
+        # Agar foydalanuvchi HR yoki Admin bo‘lmasa — status yashiriladi
+        if not request or not request.user.is_authenticated or (
+            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+        ):
+            data.pop('status', None)
+            data.pop('status_display', None)
+
+        return data
+
+    def get_fields(self):
+        """Browsable API formasi uchun statusni yashirish"""
+        fields = super().get_fields()
+        request = self.context.get('request')
+
+        if not request or not request.user.is_authenticated or (
+            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+        ):
+            fields.pop('status', None)
+        return fields
+
+
 
 
 class StatisticDataSerializer(serializers.ModelSerializer):
@@ -236,3 +415,71 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
             'created_at'
         ]
         read_only_fields = ['created_at']
+
+
+
+class StationSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField()
+    videos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Station
+        fields = ['name', 'images', 'videos']
+
+    def get_images(self, obj):
+        return [image.image.url for image in obj.images.all()]
+
+    def get_videos(self, obj):
+        return [
+            {
+                "title": video.title,
+                "url": video.url,
+                "thumbnail": video.thumbnail,
+            }
+            for video in obj.videos.all()
+        ]
+
+
+
+# class LostItemRequestSerializer(serializers.ModelSerializer):
+#     recaptcha_token = serializers.CharField(write_only=True)
+
+#     class Meta:
+#         model = LostItemRequest
+#         fields = [
+#             'id',
+#             'name_uz', 'name_ru', 'name_en',
+#             'phone', 'email',
+#             'message_uz', 'message_ru', 'message_en',
+#             'created_at',
+#             'recaptcha_token'
+#         ]
+#         read_only_fields = ['created_at']
+
+#     def validate_recaptcha_token(self, value):
+#         """Google reCAPTCHA v3 tokenini tekshirish"""
+#         url = "https://www.google.com/recaptcha/api/siteverify"
+#         data = {
+#             'secret': settings.RECAPTCHA_SECRET_KEY,
+#             'response': value
+#         }
+
+#         try:
+#             r = requests.post(url, data=data, timeout=5)
+#             result = r.json()
+#         except Exception:
+#             raise serializers.ValidationError("reCAPTCHA serveriga ulanib bo‘lmadi.")
+
+#         # Tekshirish natijasi
+#         if not result.get('success'):
+#             raise serializers.ValidationError("reCAPTCHA tasdiqlanmadi.")
+
+#         score = result.get('score', 0)
+#         if score < getattr(settings, 'RECAPTCHA_MIN_SCORE', 0.5):
+#             raise serializers.ValidationError("So‘rov shubhali (score past).")
+
+#         return value
+
+#     def create(self, validated_data):
+#         validated_data.pop('recaptcha_token', None)  # DB ga saqlanmasin
+#         return super().create(validated_data)

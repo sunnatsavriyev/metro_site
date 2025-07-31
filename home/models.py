@@ -96,8 +96,6 @@ class Comment(models.Model):
         default=timezone.now
     )
 
-
-# -------------------- JobVacancy --------------------
 class JobVacancy(models.Model):
     title_uz = models.CharField("Nom (uz)", max_length=255, blank=True, null=True)
     title_ru = models.CharField("Название (ru)", max_length=255, blank=True, null=True)
@@ -107,11 +105,29 @@ class JobVacancy(models.Model):
     requirements_ru = models.TextField("Требования (ru)", blank=True, null=True)
     requirements_en = models.TextField("Requirements (en)", blank=True, null=True)
 
-    benefits_uz = models.TextField("Imtiyozlar (uz)", blank=True, null=True)
-    benefits_ru = models.TextField("Преимущества (ru)", blank=True, null=True)
-    benefits_en = models.TextField("Benefits (en)", blank=True, null=True)
+    mutaxasislik_uz = models.TextField("Mutaxasislik (uz)", blank=True, null=True)
+    mutaxasislik_ru = models.TextField("Мутации (ru)", blank=True, null=True)
+    mutaxasislik_en = models.TextField("Mutaxasislik (en)", blank=True, null=True)
 
-    ageRange = models.CharField("Yosh oralig‘i / Возраст / Age Range", max_length=50, blank=True, null=True)
+    CHOOSED_STATUS_UZ = [
+        ('oliy', 'Oliy'),
+        ("o'rta", "O'rta"),
+        ("o'rta mahsus", "O'rta mahsus"),
+    ]
+    CHOOSED_STATUS_RU = [
+        ('oliy', 'Высшее'),
+        ("o'rta", "Среднее"),
+        ("o'rta mahsus", "Среднее специальное"),
+    ]
+    CHOOSED_STATUS_EN = [
+        ('oliy', 'Higher'),
+        ("o'rta", "Secondary"),
+        ("o'rta mahsus", "Specialized secondary"),
+    ]
+
+    education_status_uz = models.CharField("Ma'lumot (uz)", max_length=20, choices=CHOOSED_STATUS_UZ, blank=True, null=True)
+    education_status_ru = models.CharField("Ma'lumot (ru)", max_length=20, choices=CHOOSED_STATUS_RU, blank=True, null=True)
+    education_status_en = models.CharField("Ma'lumot (en)", max_length=20, choices=CHOOSED_STATUS_EN, blank=True, null=True)
 
     created_by = models.ForeignKey(
         CustomUser,
@@ -119,8 +135,45 @@ class JobVacancy(models.Model):
         verbose_name="Kim tomonidan / Кем создано / Created By"
     )
 
+    # Qo‘lda kiritiladiganlar
+    answered_requests = models.PositiveIntegerField(default=0, verbose_name="Qabul qilinganlar")
+    rejected_requests = models.PositiveIntegerField(default=0, verbose_name="Rad etilganlar")
+    pending_requests = models.PositiveIntegerField(default=0, verbose_name="Ko‘rib chiqilayotganlar")
+
     def __str__(self):
         return self.title_uz or self.title_ru or self.title_en or "No title"
+
+
+class JobVacancyRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', "Ko'rilmoqda"),     
+        ('answered', "Javob berilgan"), 
+        ('rejected', "Rad etilgan"),     
+    ]
+
+    jobVacancy = models.ForeignKey(
+        JobVacancy,
+        related_name='requests',
+        on_delete=models.CASCADE,
+        verbose_name="Vakansiya"
+    )
+    name_uz = models.CharField("Ism (uz)", max_length=100, blank=True, null=True)
+    name_ru = models.CharField("Имя (ru)", max_length=100, blank=True, null=True)
+    name_en = models.CharField("Name (en)", max_length=100, blank=True, null=True)
+    phone = models.CharField("Telefon", max_length=20, blank=True, null=True)
+    email = models.EmailField("Email", blank=True, null=True)
+    file = models.FileField("Fayl", upload_to='jobVacancyRequests/', null=True, blank=True)
+    status = models.CharField(
+        "Holat",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    created_at = models.DateTimeField("Qo‘shilgan vaqt", auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name_uz or self.name_ru or self.name_en} - {self.jobVacancy}"
+
 
 
 # -------------------- StatisticData --------------------
@@ -261,3 +314,33 @@ class SessiyaIzlovi(models.Model):
     def __str__(self):
         return f"Sessiya: {self.sessiya_id} ({self.oxirgi_harakat})"
  
+
+
+
+class Station(models.Model):
+    name = models.CharField("Bekat nomi", max_length=150, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class StationImage(models.Model):
+    station = models.ForeignKey(
+        Station, related_name='images', on_delete=models.CASCADE
+    )
+    image = models.ImageField(upload_to='stations/images/')
+
+    def __str__(self):
+        return f"{self.station.name} - {self.image.name}"
+
+
+class StationVideo(models.Model):
+    station = models.ForeignKey(
+        Station, related_name='videos', on_delete=models.CASCADE
+    )
+    title = models.CharField("Video nomi", max_length=200)
+    url = models.URLField("YouTube URL")
+    thumbnail = models.URLField("Video preview rasmi", blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.station.name} - {self.title}"

@@ -10,8 +10,10 @@ from .views import (
     CommentViewSetUz, CommentViewSetRu, CommentViewSetEn,
     NewsLikeView,
     JobVacancyViewSetUz, JobVacancyViewSetRu, JobVacancyViewSetEn,
+    JobVacancyRequestViewSetUz, JobVacancyRequestViewSetRu, JobVacancyRequestViewSetEn,
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
-    LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn
+    LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
+    StationViewSet
 )
 
 
@@ -26,9 +28,13 @@ router.register(r'comments/en', CommentViewSetEn, basename='comments-en')
 router.register(r'job-vacancies/uz', JobVacancyViewSetUz, basename='job-vacancies-uz')
 router.register(r'job-vacancies/ru', JobVacancyViewSetRu, basename='job-vacancies-ru')
 router.register(r'job-vacancies/en', JobVacancyViewSetEn, basename='job-vacancies-en')
+router.register(r'job-vacancy-requests/uz', JobVacancyRequestViewSetUz, basename='job-vacancy-requests-uz')
+router.register(r'job-vacancy-requests/ru', JobVacancyRequestViewSetRu, basename='job-vacancy-requests-ru')
+router.register(r'job-vacancy-requests/en', JobVacancyRequestViewSetEn, basename='job-vacancy-requests-en')
 router.register(r'statistics/uz', StatisticDataViewSetUz, basename='statistics-uz')
 router.register(r'statistics/ru', StatisticDataViewSetRu, basename='statistics-ru')
 router.register(r'statistics/en', StatisticDataViewSetEn, basename='statistics-en')
+router.register(r'stations', StationViewSet, basename='stations')
 
 # Lost items
 router.register(r'lost-items', LostItemRequestViewSet, basename='lost-items')

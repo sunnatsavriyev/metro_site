@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import (
     CustomUser, News, NewsImage, Comment,
-    JobVacancy, StatisticData,
-    LostItemRequest,FoydalanuvchiStatistika
+    JobVacancy,JobVacancyRequest, StatisticData,
+    LostItemRequest,FoydalanuvchiStatistika, Station, StationImage, StationVideo
 )
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
@@ -77,13 +77,19 @@ class CommentAdmin(admin.ModelAdmin):
     ordering = ['-timestamp']
     search_fields = ['author_uz', 'author_ru', 'author_en', 'content_uz', 'content_ru', 'content_en']
 
-
 @admin.register(JobVacancy)
 class JobVacancyAdmin(admin.ModelAdmin):
     list_display = ['title_uz', 'title_ru', 'title_en', 'created_by']
     search_fields = ['title_uz', 'title_ru', 'title_en']
     ordering = ['title_uz']
 
+
+@admin.register(JobVacancyRequest)
+class JobVacancyRequestAdmin(admin.ModelAdmin):
+    list_display = ['name_uz', 'name_ru', 'name_en', 'phone', 'email', 'status', 'created_at', 'file']
+    search_fields = ['name_uz', 'name_ru', 'name_en', 'phone', 'email']
+    list_filter = ['status', 'created_at']
+    ordering = ['-created_at']
 
 @admin.register(StatisticData)
 class StatisticDataAdmin(admin.ModelAdmin):
@@ -103,3 +109,27 @@ class LostItemRequestAdmin(admin.ModelAdmin):
 @admin.register(FoydalanuvchiStatistika)
 class FoydalanuvchiStatistikaAdmin(admin.ModelAdmin):
     list_display = ['jami_kirishlar', 'oxirgi_faollik']
+
+
+
+
+class StationImageInline(admin.TabularInline):
+    model = StationImage
+    extra = 1
+
+class StationVideoInline(admin.TabularInline):
+    model = StationVideo
+    extra = 1
+
+@admin.register(Station)
+class StationAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    inlines = [StationImageInline, StationVideoInline]
+
+@admin.register(StationImage)
+class StationImageAdmin(admin.ModelAdmin):
+    list_display = ('station', 'image')
+
+@admin.register(StationVideo)
+class StationVideoAdmin(admin.ModelAdmin):
+    list_display = ('station', 'title', 'url')
