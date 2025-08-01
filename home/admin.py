@@ -100,9 +100,9 @@ class StatisticDataAdmin(admin.ModelAdmin):
 
 @admin.register(LostItemRequest)
 class LostItemRequestAdmin(admin.ModelAdmin):
-    list_display = ['name', 'phone', 'email', 'address', 'passport', 'created_at']
+    list_display = ['name', 'phone', 'email', 'address', 'passport', 'created_at', 'status']
     search_fields = ['name', 'phone', 'email', 'passport']
-    list_filter = ['created_at']
+    list_filter = ['created_at', 'status']
     ordering = ['-created_at']
 
 

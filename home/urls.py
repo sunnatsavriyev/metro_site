@@ -13,6 +13,7 @@ from .views import (
     JobVacancyRequestViewSetUz, JobVacancyRequestViewSetRu, JobVacancyRequestViewSetEn,
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
     LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
+    MainNewsListViewUz, MainNewsListViewRu, MainNewsListViewEn
     
 )
 
@@ -61,6 +62,9 @@ urlpatterns = [
     path('news/latest/uz', LatestNewsListViewUz.as_view(), name='latest-news'),
     path('news/latest/ru', LatestNewsListViewRu.as_view(), name='latest-news'),
     path('news/latest/en', LatestNewsListViewEn.as_view(), name='latest-news'),
+    path('news/main/uz', MainNewsListViewUz.as_view(), name='main-news'),
+    path('news/main/ru', MainNewsListViewRu.as_view(), name='main-news'),
+    path('news/main/en', MainNewsListViewEn.as_view(), name='main-news'),
     path('sayt_foydalanuvchilari/', FoydalanuvchiStatistikaView.as_view(), name='foydalanuvchi-statistika'),
 ]
 

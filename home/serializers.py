@@ -78,6 +78,115 @@ class NewsCreateSerializerEn(serializers.ModelSerializer):
             NewsImage.objects.create(news=news, image=image)
         return news
 
+class LatestNewsSerializerUz(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    like_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title_uz', 
+            'description_uz', 
+            'fullContent_uz', 
+            'publishedAt', 'category_uz',
+            'like_count', 'image'
+        ]
+
+    def get_image(self, obj):
+        # Birinchi rasmni olish (agar bor bo‘lsa)
+        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
+        return first_image.image.url if first_image else None
+
+
+class LatestNewsSerializerRu(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    like_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title_ru', 
+            'description_ru', 
+            'fullContent_ru', 
+            'publishedAt', 'category_ru',
+            'like_count', 'image'
+        ]
+
+    def get_image(self, obj):
+        # Birinchi rasmni olish (agar bor bo‘lsa)
+        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
+        return first_image.image.url if first_image else None
+
+class LatestNewsSerializerEn(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    like_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title_en', 
+            'description_en', 
+            'fullContent_en', 
+            'publishedAt', 'category_en',
+            'like_count', 'image'
+        ]
+
+    def get_image(self, obj):
+        # Birinchi rasmni olish (agar bor bo‘lsa)
+        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
+        return first_image.image.url if first_image else None
+
+
+
+class MainNewsSerializerUz(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title_uz', 
+            'image'
+        ]
+
+    def get_image(self, obj):
+        # Birinchi rasmni olish (agar bor bo‘lsa)
+        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
+        return first_image.image.url if first_image else None
+
+
+class MainNewsSerializerRu(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title_ru', 
+            'image'
+        ]
+
+    def get_image(self, obj):
+        # Birinchi rasmni olish (agar bor bo‘lsa)
+        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
+        return first_image.image.url if first_image else None
+
+
+class MainNewsSerializerEn(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title_en', 
+            'image'
+        ]
+
+    def get_image(self, obj):
+        # Birinchi rasmni olish (agar bor bo‘lsa)
+        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
+        return first_image.image.url if first_image else None
+
 
 
 class NewsSerializerUz(serializers.ModelSerializer):
@@ -409,17 +518,55 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
         model = LostItemRequest
         fields = [
             'id',
-            'name', 
-            'phone', 'email',
+            'name',
+            'phone',
+            'email',
             'address',
             'passport',
-            'message', 
-            'created_at'
+            'message',
+            'created_at',
+            'status',
         ]
         read_only_fields = ['created_at']
 
+    def get_fields(self):
+        """Anonimuslar va oddiy userlar POST qilganda status maydonini olib tashlaymiz"""
+        fields = super().get_fields()
+        request = self.context.get('request')
 
+        # Faqat superadmin va Lost Item Support uchun statusni ko‘rsatamiz (POST/PUT uchun)
+        if not request or not request.user.is_authenticated or not (
+            request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"
+        ):
+            fields.pop('status', None)
 
+        return fields
+
+    def to_representation(self, instance):
+        """Requestlar ro‘yxati qaytganda status faqat superadmin va Lost Item Support uchun ko‘rinadi"""
+        rep = super().to_representation(instance)
+        request = self.context.get('request')
+
+        if not request or not request.user.is_authenticated or not (
+            request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"
+        ):
+            rep.pop('status', None)
+
+        return rep
+
+    def create(self, validated_data):
+        """Anonimuslar yuborganda status avtomatik 'pending' bo‘ladi"""
+        validated_data['status'] = 'pending'
+        return super().create(validated_data)
+
+    def validate(self, attrs):
+        """Status faqat superadmin yoki Lost Item Support yuborganda qabul qilinadi"""
+        request = self.context.get('request')
+        if 'status' in attrs and (not request.user.is_authenticated or not (
+            request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"
+        )):
+            attrs.pop('status', None)
+        return attrs
 
 
 # class LostItemRequestSerializer(serializers.ModelSerializer):

@@ -13,6 +13,8 @@ from .throttles import LostItemBurstRateThrottle
 from .serializers import (
     NewsCreateSerializerRu, NewsCreateSerializerUz, NewsCreateSerializerEn,
     NewsSerializerUz, NewsSerializerRu, NewsSerializerEn,
+    LatestNewsSerializerRu, LatestNewsSerializerUz, LatestNewsSerializerEn,
+    MainNewsSerializerRu, MainNewsSerializerUz, MainNewsSerializerEn,
     CommentSerializerUz, CommentSerializerRu, CommentSerializerEn,
     NewsImageSerializer,
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
@@ -20,7 +22,7 @@ from .serializers import (
     StatisticDataSerializer, StatisticDataWriteSerializer,
     LostItemRequestSerializer
 )
-
+from rest_framework.decorators import action
 from .permissions import (
     IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport
 )
@@ -123,23 +125,42 @@ class NewsImageViewSet(viewsets.ModelViewSet):
 class LatestNewsListViewUz(ListAPIView):
    
     queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = NewsSerializerUz
+    serializer_class = LatestNewsSerializerUz
     permission_classes = [permissions.AllowAny]
 
  
 class LatestNewsListViewRu(ListAPIView):
    
     queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = NewsSerializerRu
+    serializer_class = LatestNewsSerializerRu
     permission_classes = [permissions.AllowAny]
 
 
 class LatestNewsListViewEn(ListAPIView):
    
     queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = NewsSerializerEn
+    serializer_class = LatestNewsSerializerEn
     permission_classes = [permissions.AllowAny]
 
+
+class MainNewsListViewUz(ListAPIView):
+   
+    queryset = News.objects.all().order_by('-publishedAt')[:5]
+    serializer_class = MainNewsSerializerUz
+    permission_classes = [permissions.AllowAny]
+
+
+class MainNewsListViewRu(ListAPIView):
+   
+    queryset = News.objects.all().order_by('-publishedAt')[:5]
+    serializer_class = MainNewsSerializerRu
+    permission_classes = [permissions.AllowAny]
+
+
+class MainNewsListViewEn(ListAPIView):   
+    queryset = News.objects.all().order_by('-publishedAt')[:5]
+    serializer_class = MainNewsSerializerEn
+    permission_classes = [permissions.AllowAny]
 
 # --- Job Vacancies (Kadrlar bo‘limi) ---
 class JobVacancyViewSetUz(viewsets.ModelViewSet):
@@ -302,18 +323,56 @@ class StatisticDataViewSetEn(viewsets.ModelViewSet):
         return context
 
 
-
-
 class LostItemRequestViewSet(viewsets.ModelViewSet):
-    queryset = LostItemRequest.objects.all().order_by('-created_at')
     serializer_class = LostItemRequestSerializer
     throttle_classes = [LostItemBurstRateThrottle]
 
+    def get_queryset(self):
+        """Faqat superadmin va Lost Item Support requestlarni ko‘ra oladi"""
+        user = self.request.user
+        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
+            return LostItemRequest.objects.all().order_by('-created_at')
+        return LostItemRequest.objects.none()
+
     def get_permissions(self):
-        if self.action == 'create':
+        # create barcha uchun ochiq
+        if self.action in ['create', 'list']:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
+    def perform_update(self, serializer):
+        """Statusni faqat superadmin va Lost Item Support o‘zgartira oladi"""
+        user = self.request.user
+        if not (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
+            serializer.validated_data.pop('status', None)
+        serializer.save()
+
+    def list(self, request, *args, **kwargs):
+        """List endpointida statistika ham chiqadi"""
+        total = LostItemRequest.objects.count()
+        answered = LostItemRequest.objects.filter(status='answered').count()
+        unanswered = total - answered
+        percentage = round((answered / total) * 100, 2) if total > 0 else 0
+
+        # Statistika ma'lumotlari (foiz va sonlar)
+        stats = {
+            "total_requests": total,
+            "answered_percentage": percentage,
+            "answered_requests": answered,
+            "unanswered_requests": unanswered
+        }
+
+        # Superadmin va Lost Item Support uchun requestlar ro‘yxatini ham qaytaramiz
+        if request.user.is_authenticated and (request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"):
+            queryset = self.filter_queryset(self.get_queryset())
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({
+                "stats": stats,
+                "requests": serializer.data
+            })
+
+        # Boshqa login foydalanuvchilar va anonimuslar faqat statistika ko‘radi
+        return Response({"stats": stats})
 
 
 

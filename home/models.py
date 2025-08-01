@@ -275,6 +275,10 @@ class StatisticData(models.Model):
 
 # -------------------- LostItemRequest --------------------
 class LostItemRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Javob berilmagan'),
+        ('answered', 'Javob berilgan'),
+    ]
     name = models.CharField("Ism", max_length=100, blank=True, null=True)
 
     phone = models.CharField("Telefon", max_length=20, blank=True, null=True)
@@ -285,6 +289,12 @@ class LostItemRequest(models.Model):
 
     message = models.TextField("Xabar", blank=True, null=True)
     created_at = models.DateTimeField("Qo‘shilgan vaqt", auto_now_add=True)
+
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
 
     def __str__(self):
         return f"Yo‘qolgan buyum: {self.name}"
