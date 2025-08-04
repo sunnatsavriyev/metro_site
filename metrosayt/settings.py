@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import environ
-import dj_database_url
+
 # Base dir
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -103,8 +103,12 @@ WSGI_APPLICATION = 'metrosayt.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-         'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'))
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env("DB_NAME"),
+        'USER': env("DB_USER"),
+        'PASSWORD': env("DB_PASSWORD"),
+        'HOST': env("DB_HOST"),
+        'PORT': env("DB_PORT"),
     }
 }
 
