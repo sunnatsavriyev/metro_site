@@ -97,21 +97,38 @@ class NewsLikeView(APIView):
 
 # --- Comments ---
 class CommentViewSetUz(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializerUz
     permission_classes = [permissions.AllowAny]
 
+    def get_queryset(self):
+        news_id = self.request.query_params.get('news_id')
+        qs = Comment.objects.all().order_by('-timestamp')
+        if news_id:
+            qs = qs.filter(news_id=news_id)
+        return qs
 
 class CommentViewSetRu(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializerRu
     permission_classes = [permissions.AllowAny]
 
+    def get_queryset(self):
+        news_id = self.request.query_params.get('news_id')
+        qs = Comment.objects.all().order_by('-timestamp')
+        if news_id:
+            qs = qs.filter(news_id=news_id)
+        return qs
+
 
 class CommentViewSetEn(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializerEn
     permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        news_id = self.request.query_params.get('news_id')
+        qs = Comment.objects.all().order_by('-timestamp')
+        if news_id:
+            qs = qs.filter(news_id=news_id)
+        return qs
 
 
 
