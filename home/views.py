@@ -190,11 +190,12 @@ class MainNewsListViewEn(ListAPIView):
 
 
 # --- Job Vacancies ---
+
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSetUz(viewsets.ModelViewSet):
     serializer_class = JobVacancySerializerUz
     permission_classes = [IsHRUserOrReadOnly]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         return JobVacancy.objects.all()
 
@@ -202,11 +203,11 @@ class JobVacancyViewSetUz(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSetRu(viewsets.ModelViewSet):
     serializer_class = JobVacancySerializerRu
     permission_classes = [IsHRUserOrReadOnly]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         return JobVacancy.objects.all()
 
@@ -214,11 +215,11 @@ class JobVacancyViewSetRu(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSetEn(viewsets.ModelViewSet):
     serializer_class = JobVacancySerializerEn
     permission_classes = [IsHRUserOrReadOnly]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         return JobVacancy.objects.all()
 
@@ -226,7 +227,7 @@ class JobVacancyViewSetEn(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
-# --- JobVacancyRequest ---
+# --- JobVacancyRequest ---@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -238,7 +239,6 @@ class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
             return [IsHRUserOrReadOnly()]
         return [permissions.AllowAny()]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return JobVacancyRequest.objects.none()
@@ -250,6 +250,7 @@ class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -261,7 +262,6 @@ class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
             return [IsHRUserOrReadOnly()]
         return [permissions.AllowAny()]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return JobVacancyRequest.objects.none()
@@ -273,6 +273,7 @@ class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -284,7 +285,6 @@ class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
             return [IsHRUserOrReadOnly()]
         return [permissions.AllowAny()]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return JobVacancyRequest.objects.none()
