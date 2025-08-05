@@ -227,7 +227,8 @@ class JobVacancyViewSetEn(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
-# --- JobVacancyRequest ---@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+# --- JobVacancyRequest ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -359,7 +360,6 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
     serializer_class = LostItemRequestSerializer
     throttle_classes = [LostItemBurstRateThrottle]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         user = self.request.user
         if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
@@ -377,6 +377,7 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
             serializer.validated_data.pop('status', None)
         serializer.save()
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def list(self, request, *args, **kwargs):
         total = LostItemRequest.objects.count()
         answered = LostItemRequest.objects.filter(status='answered').count()

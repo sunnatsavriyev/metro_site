@@ -93,7 +93,7 @@ class JobVacancyRequestAdmin(admin.ModelAdmin):
 
 @admin.register(StatisticData)
 class StatisticDataAdmin(admin.ModelAdmin):
-    list_display = ['station_name', 'user_count', 'month', 'created_at']
+    list_display = ['station_name', 'user_count', 'year', 'month', 'created_at']
     list_filter = ['station_name']
     search_fields = ['station_name']
 

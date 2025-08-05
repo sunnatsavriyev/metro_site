@@ -489,15 +489,20 @@ class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
 class StatisticDataSerializer(serializers.ModelSerializer):
     station_name = serializers.SerializerMethodField()
     month = serializers.SerializerMethodField()
+    year = serializers.SerializerMethodField()
 
     class Meta:
         model = StatisticData
-        fields = ['id', 'station_name', 'user_count', 'month', 'created_at']
+        fields = ['id', 'station_name', 'user_count','year', 'month', 'created_at']
         read_only_fields = ['created_at']
 
     # --- O‘qish uchun tarjima ---
     def get_station_name(self, obj):
         lang = self.context.get('lang', 'uz')  # default uz
+        return obj.get_station_translation(lang)
+
+    def get_year(self, obj):
+        lang = self.context.get('lang', 'uz')  
         return obj.get_station_translation(lang)
 
     def get_month(self, obj):
@@ -507,10 +512,11 @@ class StatisticDataSerializer(serializers.ModelSerializer):
 class StatisticDataWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = StatisticData
-        fields = ['station_name', 'user_count', 'month']
+        fields = ['station_name', 'user_count', 'year','month']
         extra_kwargs = {
             'station_name': {'required': True},
             'month': {'required': True},
+            'year': {'required': True},
         }
 
 class LostItemRequestSerializer(serializers.ModelSerializer):

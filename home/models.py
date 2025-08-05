@@ -231,6 +231,14 @@ class StatisticData(models.Model):
         'Amir Temur xiyoboni': {'uz': 'Amir Temur xiyoboni', 'ru': 'Амир Темур хиёбони', 'en': 'Amir Temur xiyoboni'},
         'Mustaqillik maydoni': {'uz': 'Mustaqillik maydoni', 'ru': 'Мустақиллик майдони', 'en': 'Mustaqillik maydoni'},
     }
+    Year_TRANSLATIONS = {
+        '2025': {'uz': '2025', 'ru': '2025', 'en': '2025'},
+        '2026': {'uz': '2026', 'ru': '2026', 'en': '2026'},
+        '2027': {'uz': '2027', 'ru': '2027', 'en': '2027'},
+        '2028': {'uz': '2028', 'ru': '2028', 'en': '2028'},
+        '2029': {'uz': '2029', 'ru': '2029', 'en': '2029'},
+        '2030': {'uz': '2030', 'ru': '2030', 'en': '2030'},
+    }
 
     # Oylik tarjimalar (dict format)
     MONTH_TRANSLATIONS = {
@@ -250,20 +258,28 @@ class StatisticData(models.Model):
 
     STATION_CHOICES = [(key, value['uz']) for key, value in STATION_TRANSLATIONS.items()]
     MONTH_CHOICES = [(key, value['uz']) for key, value in MONTH_TRANSLATIONS.items()]
+    YEAR_CHOICES = [(key, value['uz']) for key, value in Year_TRANSLATIONS.items()]
 
     station_name = models.CharField("Bekat / Станция / Station", max_length=100, choices=STATION_CHOICES)
+    year = models.CharField("Yil / Год / Year", max_length=20, choices=YEAR_CHOICES, default='2025')
     month = models.CharField("Oy / Месяц / Month", max_length=20, choices=MONTH_CHOICES, default='Yanvar')
     user_count = models.PositiveIntegerField("Foydalanuvchilar soni / Кол-во пользователей / Users Count", default=0)
     created_at = models.DateTimeField("Qo‘shilgan vaqt / Дата добавления / Created At", auto_now_add=True)
 
     def __str__(self):
-        return f"{self.get_station_name_display()} ({self.get_month_display()}) - {self.user_count} ta odam"
+        return f"{self.get_station_name_display()} ({self.get_year_display()}) - ({self.get_month_display()}) - {self.user_count} ta odam"
 
     def get_station_translation(self, lang):
         translations = self.STATION_TRANSLATIONS.get(self.station_name)
         if not translations:
-            return self.station_name  # yoki ''
+            return self.station_name 
         return translations.get(lang, self.station_name)
+
+    def get_year_translation(self, lang):
+        translations = self.Year_TRANSLATIONS.get(self.year)
+        if not translations:
+            return self.year
+        return translations.get(lang, self.year)
 
     def get_month_translation(self, lang):
         translations = self.MONTH_TRANSLATIONS.get(self.month)
