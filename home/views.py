@@ -1,4 +1,3 @@
-# home/views.py
 from rest_framework import viewsets, permissions, status, mixins,generics,  filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -28,8 +27,13 @@ from .permissions import (
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import BasePermission
-# --- News ---
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
+CACHE_TIMEOUT = 3600  # 1 soat kesh
+
+# --- News ---
 class NewsViewSetUz(viewsets.ModelViewSet):
     queryset = News.objects.all()
     permission_classes = [IsNewsEditorOrReadOnly]
@@ -69,13 +73,12 @@ class NewsViewSetEn(viewsets.ModelViewSet):
         serializer.save()
 
 
-
-        
-# --- News Like ---class 
+# --- News Like ---
 class NewsLikeView(APIView):
     permission_classes = [permissions.AllowAny]  
 
     # Like sonini olish
+    @method_decorator(cache_page(CACHE_TIMEOUT))
     def get(self, request, pk):
         news = get_object_or_404(News, pk=pk)
         return Response({
@@ -96,6 +99,7 @@ class NewsLikeView(APIView):
 
 
 # --- Comments ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
 class CommentViewSetUz(viewsets.ModelViewSet):
     serializer_class = CommentSerializerUz
     permission_classes = [permissions.AllowAny]
@@ -107,6 +111,8 @@ class CommentViewSetUz(viewsets.ModelViewSet):
             qs = qs.filter(news_id=news_id)
         return qs
 
+
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
 class CommentViewSetRu(viewsets.ModelViewSet):
     serializer_class = CommentSerializerRu
     permission_classes = [permissions.AllowAny]
@@ -119,6 +125,7 @@ class CommentViewSetRu(viewsets.ModelViewSet):
         return qs
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
 class CommentViewSetEn(viewsets.ModelViewSet):
     serializer_class = CommentSerializerEn
     permission_classes = [permissions.AllowAny]
@@ -131,59 +138,63 @@ class CommentViewSetEn(viewsets.ModelViewSet):
         return qs
 
 
-
-
 # --- News Images ---
 class NewsImageViewSet(viewsets.ModelViewSet):
     queryset = NewsImage.objects.all()
     serializer_class = NewsImageSerializer
     permission_classes = [permissions.IsAdminUser]
 
+
+# --- Latest News ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class LatestNewsListViewUz(ListAPIView):
-   
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = LatestNewsSerializerUz
     permission_classes = [permissions.AllowAny]
 
- 
+
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class LatestNewsListViewRu(ListAPIView):
-   
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = LatestNewsSerializerRu
     permission_classes = [permissions.AllowAny]
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class LatestNewsListViewEn(ListAPIView):
-   
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = LatestNewsSerializerEn
     permission_classes = [permissions.AllowAny]
 
 
+# --- Main News ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class MainNewsListViewUz(ListAPIView):
-   
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = MainNewsSerializerUz
     permission_classes = [permissions.AllowAny]
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class MainNewsListViewRu(ListAPIView):
-   
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = MainNewsSerializerRu
     permission_classes = [permissions.AllowAny]
 
 
-class MainNewsListViewEn(ListAPIView):   
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+class MainNewsListViewEn(ListAPIView):
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = MainNewsSerializerEn
     permission_classes = [permissions.AllowAny]
 
-# --- Job Vacancies (Kadrlar bo‘limi) ---
+
+# --- Job Vacancies ---
 class JobVacancyViewSetUz(viewsets.ModelViewSet):
     serializer_class = JobVacancySerializerUz
     permission_classes = [IsHRUserOrReadOnly]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         return JobVacancy.objects.all()
 
@@ -195,6 +206,7 @@ class JobVacancyViewSetRu(viewsets.ModelViewSet):
     serializer_class = JobVacancySerializerRu
     permission_classes = [IsHRUserOrReadOnly]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         return JobVacancy.objects.all()
 
@@ -206,6 +218,7 @@ class JobVacancyViewSetEn(viewsets.ModelViewSet):
     serializer_class = JobVacancySerializerEn
     permission_classes = [IsHRUserOrReadOnly]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         return JobVacancy.objects.all()
 
@@ -213,8 +226,7 @@ class JobVacancyViewSetEn(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
-# views.py
-# ------- Uzbekcha Viewset -------
+# --- JobVacancyRequest ---
 class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -222,14 +234,12 @@ class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
         return JobVacancyRequestSerializerUz
 
     def get_permissions(self):
-        # GET/PATCH/DELETE faqat HR yoki Admin uchun
         if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
             return [IsHRUserOrReadOnly()]
-        # POST hammaga ruxsat
         return [permissions.AllowAny()]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
-        # Login qilmaganlar va oddiy userlar ko‘ra olmaydi
         if not self.request.user.is_authenticated:
             return JobVacancyRequest.objects.none()
         if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
@@ -240,7 +250,6 @@ class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
-# ------- Ruscha Viewset -------
 class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -252,6 +261,7 @@ class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
             return [IsHRUserOrReadOnly()]
         return [permissions.AllowAny()]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return JobVacancyRequest.objects.none()
@@ -263,7 +273,6 @@ class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
-# ------- Inglizcha Viewset -------
 class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -275,6 +284,7 @@ class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
             return [IsHRUserOrReadOnly()]
         return [permissions.AllowAny()]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return JobVacancyRequest.objects.none()
@@ -286,7 +296,9 @@ class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
-# Uzbek view
+# --- StatisticData ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
 class StatisticDataViewSetUz(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
@@ -304,7 +316,8 @@ class StatisticDataViewSetUz(viewsets.ModelViewSet):
         return context
 
 
-# Russian view
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
 class StatisticDataViewSetRu(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
@@ -322,7 +335,8 @@ class StatisticDataViewSetRu(viewsets.ModelViewSet):
         return context
 
 
-# English view
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
 class StatisticDataViewSetEn(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
@@ -340,38 +354,35 @@ class StatisticDataViewSetEn(viewsets.ModelViewSet):
         return context
 
 
+# --- LostItemRequest ---
 class LostItemRequestViewSet(viewsets.ModelViewSet):
     serializer_class = LostItemRequestSerializer
     throttle_classes = [LostItemBurstRateThrottle]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
-        """Faqat superadmin va Lost Item Support requestlarni ko‘ra oladi"""
         user = self.request.user
         if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             return LostItemRequest.objects.all().order_by('-created_at')
         return LostItemRequest.objects.none()
 
     def get_permissions(self):
-        # create barcha uchun ochiq
         if self.action in ['create', 'list']:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
     def perform_update(self, serializer):
-        """Statusni faqat superadmin va Lost Item Support o‘zgartira oladi"""
         user = self.request.user
         if not (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             serializer.validated_data.pop('status', None)
         serializer.save()
 
     def list(self, request, *args, **kwargs):
-        """List endpointida statistika ham chiqadi"""
         total = LostItemRequest.objects.count()
         answered = LostItemRequest.objects.filter(status='answered').count()
         unanswered = total - answered
         percentage = round((answered / total) * 100, 2) if total > 0 else 0
 
-        # Statistika ma'lumotlari (foiz va sonlar)
         stats = {
             "total_requests": total,
             "answered_percentage": percentage,
@@ -379,7 +390,6 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
             "unanswered_requests": unanswered
         }
 
-        # Superadmin va Lost Item Support uchun requestlar ro‘yxatini ham qaytaramiz
         if request.user.is_authenticated and (request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"):
             queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
@@ -388,11 +398,11 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
                 "requests": serializer.data
             })
 
-        # Boshqa login foydalanuvchilar va anonimuslar faqat statistika ko‘radi
         return Response({"stats": stats})
 
 
-
+# --- Foydalanuvchi Statistika ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class FoydalanuvchiStatistikaView(APIView):
     permission_classes = [permissions.AllowAny]  
 
@@ -407,8 +417,6 @@ class FoydalanuvchiStatistikaView(APIView):
         })
 
 
-
-
 class IsAdminUserOnly(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.is_staff  
+        return request.user and request.user.is_staff

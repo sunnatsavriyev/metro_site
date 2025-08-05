@@ -213,3 +213,9 @@ AUTH_USER_MODEL = 'home.CustomUser'
 
 
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
