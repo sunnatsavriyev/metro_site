@@ -31,7 +31,7 @@ from rest_framework.permissions import BasePermission
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
-CACHE_TIMEOUT = 3600  # 1 soat kesh
+CACHE_TIMEOUT = 300 
 
 # --- News ---
 class NewsViewSetUz(viewsets.ModelViewSet):
