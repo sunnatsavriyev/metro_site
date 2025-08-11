@@ -19,7 +19,7 @@ from .serializers import (
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
     JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer
+    LostItemRequestSerializer, CustomUserSerializer,
 )
 from rest_framework.decorators import action
 from .permissions import (
@@ -30,8 +30,17 @@ from rest_framework.permissions import BasePermission
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-
+from datetime import datetime, timedelta 
 CACHE_TIMEOUT = 300 
+
+
+class CurrentUserView(generics.RetrieveAPIView):
+    serializer_class = CustomUserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
 
 # --- News ---
 class NewsViewSetUz(viewsets.ModelViewSet):
@@ -355,11 +364,51 @@ class StatisticDataViewSetEn(viewsets.ModelViewSet):
         return context
 
 
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+class LastSixMonthsStatisticDataUz(APIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = StatisticDataSerializer
+
+    def get(self, request):
+        six_months_ago = datetime.now() - timedelta(days=180)
+        queryset = StatisticData.objects.filter(created_at__gte=six_months_ago).order_by('-created_at')
+        serializer = StatisticDataSerializer(queryset, many=True, context={'lang': 'uz'})
+        return Response(serializer.data)
+
+
+# --- 6 oylik statistikalar (RU) ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+class LastSixMonthsStatisticDataRu(APIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = StatisticDataSerializer
+
+    def get(self, request):
+        six_months_ago = datetime.now() - timedelta(days=180)
+        queryset = StatisticData.objects.filter(created_at__gte=six_months_ago).order_by('-created_at')
+        serializer = StatisticDataSerializer(queryset, many=True, context={'lang': 'ru'})
+        return Response(serializer.data)
+
+
+# --- 6 oylik statistikalar (EN) ---
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+class LastSixMonthsStatisticDataEn(APIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = StatisticDataSerializer
+
+    def get(self, request):
+        six_months_ago = datetime.now() - timedelta(days=180)
+        queryset = StatisticData.objects.filter(created_at__gte=six_months_ago).order_by('-created_at')
+        serializer = StatisticDataSerializer(queryset, many=True, context={'lang': 'en'})
+        return Response(serializer.data)
+
+
+
 # --- LostItemRequest ---
 class LostItemRequestViewSet(viewsets.ModelViewSet):
     serializer_class = LostItemRequestSerializer
     throttle_classes = [LostItemBurstRateThrottle]
 
+    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         user = self.request.user
         if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
