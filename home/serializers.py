@@ -3,6 +3,34 @@ from .models import (
     News, Comment, NewsImage, JobVacancy,JobVacancyRequest,
     StatisticData, LostItemRequest, CustomUser
 )
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import update_session_auth_hash
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    new_password_confirm = serializers.CharField(write_only=True, required=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Eski parol noto'g'ri.")
+        return value
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({"new_password_confirm": "Parollar mos emas."})
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+
+        # Sessiyani saqlab qolish (agar sessiya login ishlatilsa)
+        update_session_auth_hash(self.context['request'], user)
+        return user
+
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:

@@ -19,7 +19,7 @@ from .serializers import (
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
     JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer, CustomUserSerializer,
+    LostItemRequestSerializer, CustomUserSerializer,ChangePasswordSerializer
 )
 from rest_framework.decorators import action
 from .permissions import (
@@ -32,6 +32,21 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta 
 CACHE_TIMEOUT = 300 
+from django.contrib.auth import get_user_model
+
+
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Yangi parol muvaffaqiyatli o'rnatildi"}, status=status.HTTP_200_OK)
+
+
 
 
 class CurrentUserView(generics.RetrieveAPIView):

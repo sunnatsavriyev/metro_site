@@ -15,9 +15,10 @@ from .views import (
     LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
     MainNewsListViewUz, MainNewsListViewRu, MainNewsListViewEn,
     LastSixMonthsStatisticDataUz,LastSixMonthsStatisticDataRu,LastSixMonthsStatisticDataEn,CurrentUserView,
+    ChangePasswordView
     
 )
-
+    
 
 router = DefaultRouter()
 # News / Comments / Vacancies / Statistics
@@ -54,7 +55,7 @@ urlpatterns = [
 
     # JWT Auth
     path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),     
 
     # Session-based login/logout (Browsable API uchun)
     path('auth/session/', include('rest_framework.urls')),
@@ -72,5 +73,7 @@ urlpatterns = [
     path('news/main/en', MainNewsListViewEn.as_view(), name='main-news'),
     path('api/me/', CurrentUserView.as_view(), name='current-user'),
     path('sayt_foydalanuvchilari/', FoydalanuvchiStatistikaView.as_view(), name='foydalanuvchi-statistika'),
+    path('auth/password/change/', ChangePasswordView.as_view(), name='change-password'),
+
 ]
 
