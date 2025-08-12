@@ -530,8 +530,7 @@ class StatisticDataSerializer(serializers.ModelSerializer):
         return obj.get_station_translation(lang)
 
     def get_year(self, obj):
-        lang = self.context.get('lang', 'uz')  
-        return obj.get_station_translation(lang)
+        return obj.year
 
     def get_month(self, obj):
         lang = self.context.get('lang', 'uz')
