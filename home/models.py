@@ -64,6 +64,9 @@ class News(models.Model):
         return self.title_uz or self.title_ru or self.title_en or "No title"
 
 
+    class Meta:
+        ordering = ['-id']
+
 
 class NewsImage(models.Model):
     news = models.ForeignKey(
