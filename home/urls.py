@@ -13,8 +13,7 @@ from .views import (
     JobVacancyRequestViewSetUz, JobVacancyRequestViewSetRu, JobVacancyRequestViewSetEn,
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
     LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
-    MainNewsListViewUz, MainNewsListViewRu, MainNewsListViewEn,
-    LastSixMonthsStatisticDataUz,LastSixMonthsStatisticDataRu,LastSixMonthsStatisticDataEn,CurrentUserView,
+    MainNewsListViewUz, MainNewsListViewRu, MainNewsListViewEn,StatisticDataListView,CurrentUserView,
     ChangePasswordView
     
 )
@@ -43,9 +42,7 @@ router.register(r'lost-items', LostItemRequestViewSet, basename='lost-items')
 
 urlpatterns = [
     
-    path('statistics/uz/last-6-months/', LastSixMonthsStatisticDataUz.as_view(), name='last-6-months-statistics-uz'),
-    path('statistics/ru/last-6-months/', LastSixMonthsStatisticDataRu.as_view(), name='last-6-months-statistics-ru'),
-    path('statistics/en/last-6-months/', LastSixMonthsStatisticDataEn.as_view(), name='last-6-months-statistics-en'),
+    path('statistics/<str:lang>/<int:year>/<int:period>/', StatisticDataListView.as_view()),
     # Uzbek API endpoints
 
     path('', include(router.urls)),

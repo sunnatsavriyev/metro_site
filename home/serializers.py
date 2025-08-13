@@ -588,12 +588,10 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
         return rep
 
     def create(self, validated_data):
-        """Anonimuslar yuborganda status avtomatik 'pending' bo‘ladi"""
         validated_data['status'] = 'pending'
         return super().create(validated_data)
 
     def validate(self, attrs):
-        """Status faqat superadmin yoki Lost Item Support yuborganda qabul qilinadi"""
         request = self.context.get('request')
         if 'status' in attrs and (not request.user.is_authenticated or not (
             request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"

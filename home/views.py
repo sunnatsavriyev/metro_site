@@ -31,7 +31,8 @@ from rest_framework.permissions import BasePermission
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta 
-CACHE_TIMEOUT = 300 
+from django.utils import timezone
+CACHE_TIMEOUT = 60
 from django.contrib.auth import get_user_model
 
 from .pagination import StandardResultsSetPagination
@@ -382,42 +383,31 @@ class StatisticDataViewSetEn(viewsets.ModelViewSet):
         return context
 
 
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class LastSixMonthsStatisticDataUz(APIView):
-    permission_classes = [permissions.AllowAny]
+
+MONTHS_FIRST_HALF = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun']
+MONTHS_SECOND_HALF = ['Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr']
+
+class StatisticDataListView(ListAPIView):
     serializer_class = StatisticDataSerializer
 
-    def get(self, request):
-        six_months_ago = datetime.now() - timedelta(days=180)
-        queryset = StatisticData.objects.filter(created_at__gte=six_months_ago).order_by('-created_at')
-        serializer = StatisticDataSerializer(queryset, many=True, context={'lang': 'uz'})
-        return Response(serializer.data)
+    def get_queryset(self):
+        lang = self.kwargs.get('lang', 'uz')
+        year = str(self.kwargs.get('year'))  # CharField bo‘lgani uchun string bo‘lishi kerak
+        period = self.kwargs.get('period')
 
+        queryset = StatisticData.objects.filter(year=year)
 
-# --- 6 oylik statistikalar (RU) ---
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class LastSixMonthsStatisticDataRu(APIView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = StatisticDataSerializer
+        if period == 1:
+            queryset = queryset.filter(month__in=MONTHS_FIRST_HALF)
+        elif period == 2:
+            queryset = queryset.filter(month__in=MONTHS_SECOND_HALF)
 
-    def get(self, request):
-        six_months_ago = datetime.now() - timedelta(days=180)
-        queryset = StatisticData.objects.filter(created_at__gte=six_months_ago).order_by('-created_at')
-        serializer = StatisticDataSerializer(queryset, many=True, context={'lang': 'ru'})
-        return Response(serializer.data)
+        return queryset
 
-
-# --- 6 oylik statistikalar (EN) ---
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class LastSixMonthsStatisticDataEn(APIView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = StatisticDataSerializer
-
-    def get(self, request):
-        six_months_ago = datetime.now() - timedelta(days=180)
-        queryset = StatisticData.objects.filter(created_at__gte=six_months_ago).order_by('-created_at')
-        serializer = StatisticDataSerializer(queryset, many=True, context={'lang': 'en'})
-        return Response(serializer.data)
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['lang'] = self.kwargs.get('lang', 'uz')
+        return context
 
 
 
