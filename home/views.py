@@ -34,7 +34,7 @@ from datetime import datetime, timedelta
 CACHE_TIMEOUT = 300 
 from django.contrib.auth import get_user_model
 
-
+from .pagination import StandardResultsSetPagination
 
 
 class ChangePasswordView(APIView):
@@ -61,6 +61,7 @@ class CurrentUserView(generics.RetrieveAPIView):
 class NewsViewSetUz(viewsets.ModelViewSet):
     queryset = News.objects.all()
     permission_classes = [IsNewsEditorOrReadOnly]
+    pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -74,6 +75,7 @@ class NewsViewSetUz(viewsets.ModelViewSet):
 class NewsViewSetRu(viewsets.ModelViewSet):
     queryset = News.objects.all()
     permission_classes = [IsNewsEditorOrReadOnly]
+    pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -87,7 +89,8 @@ class NewsViewSetRu(viewsets.ModelViewSet):
 class NewsViewSetEn(viewsets.ModelViewSet):
     queryset = News.objects.all()
     permission_classes = [IsNewsEditorOrReadOnly]
-
+    pagination_class = StandardResultsSetPagination
+    
     def get_serializer_class(self):
         if self.action == 'create':
             return NewsCreateSerializerEn

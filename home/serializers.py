@@ -526,7 +526,7 @@ class StatisticDataSerializer(serializers.ModelSerializer):
 
     # --- O‘qish uchun tarjima ---
     def get_station_name(self, obj):
-        lang = self.context.get('lang', 'uz')  # default uz
+        lang = self.context.get('lang', 'uz')  
         return obj.get_station_translation(lang)
 
     def get_year(self, obj):
