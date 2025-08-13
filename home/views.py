@@ -19,7 +19,7 @@ from .serializers import (
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
     JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer, CustomUserSerializer,ChangePasswordSerializer
+    LostItemRequestSerializer, CustomUserSerializer,ChangePasswordSerializer,UserCreateSerializer
 )
 from rest_framework.decorators import action
 from .permissions import (
@@ -56,6 +56,19 @@ class CurrentUserView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+User = get_user_model()
+
+class IsSuperUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
+
+class UserCreateAPIView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = [permissions.IsAdminUser]
+
 
 
 # --- News ---

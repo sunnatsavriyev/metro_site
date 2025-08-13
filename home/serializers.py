@@ -5,6 +5,8 @@ from .models import (
 )
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True, required=True)
@@ -37,6 +39,23 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ('id', 'username', 'email', 'role', 'is_staff', 'is_superuser')
 
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'role']  # faqat kerakli fieldlar
+        extra_kwargs = {
+            'role': {'required': True},
+        }
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)  # parolni hash qilish
+        user.save()
+        return user
 
 class NewsImageSerializer(serializers.ModelSerializer):
     class Meta:
