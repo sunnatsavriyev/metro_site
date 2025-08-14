@@ -424,26 +424,9 @@ class StatisticDataListView(ListAPIView):
 
 
 
-class AllStationsLast6MonthsView(APIView):
-
-    def get_last_6_months(self):
-        """
-        Ma'lumotlar bazasida mavjud eng oxirgi 6 oy (year, month) ni aniqlash
-        """
-        months = (
-            StatisticData.objects
-            .values_list('year', 'month')
-            .distinct()
-        )
-
-        # (year, month) ni sanaga aylantirib tartiblash
-        month_pairs = sorted(
-            [(y, m) for y, m in months],
-            key=lambda x: (x[0], self.month_to_number(x[1])),
-            reverse=True
-        )
-
-        return month_pairs[:6]  # eng oxirgi 6 oy
+class Last6MonthsStatisticDataViewSet(viewsets.ReadOnlyModelViewSet):
+    
+    permission_classes = [IsStatisticianOrReadOnly]
 
     def month_to_number(self, month_name):
         MONTHS = {
@@ -452,40 +435,34 @@ class AllStationsLast6MonthsView(APIView):
         }
         return MONTHS.get(month_name, 0)
 
-    def get_queryset_last_6_months(self):
-        last_6_months = self.get_last_6_months()
-
-        # Filtrlash
-        queryset = StatisticData.objects.filter(
-            **{
-                'year__in': [y for y, m in last_6_months],
-                'month__in': [m for y, m in last_6_months]
-            }
+    def get_last_6_months(self):
+        # Eng oxirgi 6 (yil, oy) juftligini olish
+        months = (
+            StatisticData.objects
+            .values_list('year', 'month')
+            .distinct()
         )
+        sorted_months = sorted(
+            months,
+            key=lambda x: (x[0], self.month_to_number(x[1])),
+            reverse=True
+        )
+        return sorted_months[:6]
 
-        result = defaultdict(list)
-        all_stations = queryset.values_list('station_name', flat=True).distinct()
+    def get_queryset(self):
+        last_6_months = self.get_last_6_months()
+        years = [y for y, m in last_6_months]
+        months = [m for y, m in last_6_months]
+        return StatisticData.objects.filter(year__in=years, month__in=months)
 
-        # Oylarni eng eski -> eng yangi tartibda olish
-        last_6_months_sorted = sorted(last_6_months, key=lambda x: (x[0], self.month_to_number(x[1])))
+    def get_serializer_class(self):
+        # faqat o'qish uchun
+        return StatisticDataSerializer
 
-        for year, month in last_6_months_sorted:
-            month_data = queryset.filter(year=year, month=month) \
-                                 .values('station_name') \
-                                 .annotate(total=Sum('user_count'))
-            for station in all_stations:
-                entry = next((item for item in month_data if item['station_name'] == station), None)
-                result[station].append({
-                    'month': f"{month} {year}",
-                    'total': entry['total'] if entry else 0
-                })
-
-        return result
-
-    def get(self, request, *args, **kwargs):
-        data = self.get_queryset_last_6_months()
-        return Response(data)
-
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['lang'] = 'en'
+        return context
 
 
 
