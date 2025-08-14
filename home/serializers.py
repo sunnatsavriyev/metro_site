@@ -41,11 +41,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)  
     password = serializers.CharField(write_only=True, validators=[validate_password])
     
     class Meta:
         model = User
-        fields = ['username', 'password', 'role']  # faqat kerakli fieldlar
+        fields = ['id', 'username', 'password', 'role']  
         extra_kwargs = {
             'role': {'required': True},
         }
@@ -53,9 +54,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop('password')
         user = User(**validated_data)
-        user.set_password(password)  # parolni hash qilish
+        user.set_password(password)  
         user.save()
         return user
+
+
 
 class NewsImageSerializer(serializers.ModelSerializer):
     class Meta:
