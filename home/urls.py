@@ -14,7 +14,7 @@ from .views import (
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
     LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
     MainNewsListViewUz, MainNewsListViewRu, MainNewsListViewEn,StatisticDataListView,CurrentUserView,
-    ChangePasswordView,UserCreateAPIView, Last6MonthsStatisticDataViewSet
+    ChangePasswordView, UserListCreateAPIView, UserRetrieveUpdateDestroyAPIView, Last6MonthsStatisticDataViewSet
 
     
 )
@@ -45,7 +45,8 @@ urlpatterns = [
 
     path('statistics/<str:lang>/<int:year>/<int:period>/', StatisticDataListView.as_view()),
     # Uzbek API endpoints
-    path('users/create/', UserCreateAPIView.as_view(), name='user-create'),
+    path('users/', UserListCreateAPIView.as_view(), name='user-list-create'),
+    path('users/<int:pk>/', UserRetrieveUpdateDestroyAPIView.as_view(), name='user-detail'),
     path('', include(router.urls)),
 
     # Like endpoint (tilga bog‘liq emas)
