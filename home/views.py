@@ -30,13 +30,13 @@ from rest_framework.permissions import BasePermission
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta ,date
 from django.utils import timezone
 CACHE_TIMEOUT = 60
 from django.contrib.auth import get_user_model
-
+from django.db.models import Sum
 from .pagination import StandardResultsSetPagination
-
+from collections import defaultdict
 
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -424,7 +424,71 @@ class StatisticDataListView(ListAPIView):
 
 
 
-# --- LostItemRequest ---
+class AllStationsLast6MonthsView(APIView):
+
+    def get_last_6_months(self):
+        """
+        Ma'lumotlar bazasida mavjud eng oxirgi 6 oy (year, month) ni aniqlash
+        """
+        months = (
+            StatisticData.objects
+            .values_list('year', 'month')
+            .distinct()
+        )
+
+        # (year, month) ni sanaga aylantirib tartiblash
+        month_pairs = sorted(
+            [(y, m) for y, m in months],
+            key=lambda x: (x[0], self.month_to_number(x[1])),
+            reverse=True
+        )
+
+        return month_pairs[:6]  # eng oxirgi 6 oy
+
+    def month_to_number(self, month_name):
+        MONTHS = {
+            'Yanvar': 1, 'Fevral': 2, 'Mart': 3, 'Aprel': 4, 'May': 5, 'Iyun': 6,
+            'Iyul': 7, 'Avgust': 8, 'Sentyabr': 9, 'Oktyabr': 10, 'Noyabr': 11, 'Dekabr': 12
+        }
+        return MONTHS.get(month_name, 0)
+
+    def get_queryset_last_6_months(self):
+        last_6_months = self.get_last_6_months()
+
+        # Filtrlash
+        queryset = StatisticData.objects.filter(
+            **{
+                'year__in': [y for y, m in last_6_months],
+                'month__in': [m for y, m in last_6_months]
+            }
+        )
+
+        result = defaultdict(list)
+        all_stations = queryset.values_list('station_name', flat=True).distinct()
+
+        # Oylarni eng eski -> eng yangi tartibda olish
+        last_6_months_sorted = sorted(last_6_months, key=lambda x: (x[0], self.month_to_number(x[1])))
+
+        for year, month in last_6_months_sorted:
+            month_data = queryset.filter(year=year, month=month) \
+                                 .values('station_name') \
+                                 .annotate(total=Sum('user_count'))
+            for station in all_stations:
+                entry = next((item for item in month_data if item['station_name'] == station), None)
+                result[station].append({
+                    'month': f"{month} {year}",
+                    'total': entry['total'] if entry else 0
+                })
+
+        return result
+
+    def get(self, request, *args, **kwargs):
+        data = self.get_queryset_last_6_months()
+        return Response(data)
+
+
+
+
 class LostItemRequestViewSet(viewsets.ModelViewSet):
     serializer_class = LostItemRequestSerializer
     throttle_classes = [LostItemBurstRateThrottle]
