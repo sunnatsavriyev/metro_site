@@ -204,7 +204,7 @@ class StatisticData(models.Model):
         'Kosmonavtlar': {'uz': 'Kosmonavtlar', 'ru': 'Космонавтлар', 'en': 'Kosmonavtlar'},
         'Oʻzbekiston': {'uz': 'Oʻzbekiston', 'ru': 'Ўзбекистон', 'en': "Oʻzbekiston"},
         'Hamid Olimjon': {'uz': 'Hamid Olimjon', 'ru': 'Ҳамид Олимжон', 'en': 'Hamid Olimjon'},
-        'Ming Oʻrik': {'uz': 'Ming Oʻrik', 'ru': 'Минг Ўрик', 'en': 'Ming Oʻrik'},
+        'Mingoʻrik': {'uz': 'Mingoʻrik', 'ru': 'Мингўрик', 'en': 'Mingoʻrik'},
         'Yunus Rajabiy': {'uz': 'Yunus Rajabiy', 'ru': 'Юнус Раджабий', 'en': 'Yunus Rajabiy'},
         'Shahriston': {'uz': 'Shahriston', 'ru': 'Шахристон', 'en': 'Shahriston'},
         'Bodomzor': {'uz': 'Bodomzor', 'ru': 'Бодомзор', 'en': 'Bodomzor'},
