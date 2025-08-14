@@ -19,15 +19,16 @@ from .serializers import (
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
     JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer, CustomUserSerializer,ChangePasswordSerializer,UserCreateSerializer
+    LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer
 )
 from rest_framework.decorators import action
 from .permissions import (
     IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport
 )
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import BasePermission
-
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta ,date
@@ -37,22 +38,18 @@ from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from .pagination import StandardResultsSetPagination
 from collections import defaultdict
-
-class ChangePasswordView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"detail": "Yangi parol muvaffaqiyatli o'rnatildi"}, status=status.HTTP_200_OK)
+from django.conf import settings
 
 
 
 
 class CurrentUserView(generics.RetrieveAPIView):
-    serializer_class = CustomUserSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return UserUpdateSerializer
+        return CustomUserSerializer
 
     def get_object(self):
         return self.request.user
@@ -538,3 +535,44 @@ class FoydalanuvchiStatistikaView(APIView):
 class IsAdminUserOnly(BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_staff
+
+
+
+
+class TokenInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # Foydalanuvchi uchun yangi refresh va access token
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        # Access tokenning muddati (sekundlarda)
+        access_lifetime = settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+        expires_in = int(access_lifetime.total_seconds())
+
+        return Response({
+            "access": str(access),
+            "refresh": str(refresh),
+            "expires_in": expires_in
+        })
+   
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.user
+
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        # Access token muddati (soniyada)
+        access_lifetime = settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+        expires_in = int(access_lifetime.total_seconds())
+
+        return Response({
+            "access": str(access),
+            "refresh": str(refresh),
+            "expires_in": expires_in,
+        }, status=status.HTTP_200_OK)

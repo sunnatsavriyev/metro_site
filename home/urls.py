@@ -14,7 +14,8 @@ from .views import (
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
     LostItemRequestViewSet,FoydalanuvchiStatistikaView, LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
     MainNewsListViewUz, MainNewsListViewRu, MainNewsListViewEn,StatisticDataListView,CurrentUserView,
-    ChangePasswordView, UserListCreateAPIView, UserRetrieveUpdateDestroyAPIView, Last6MonthsStatisticDataViewSet
+     UserListCreateAPIView, UserRetrieveUpdateDestroyAPIView, Last6MonthsStatisticDataViewSet,
+    TokenInfoView
 
     
 )
@@ -72,12 +73,11 @@ urlpatterns = [
     path('news/main/en', MainNewsListViewEn.as_view(), name='main-news'),
     path('api/me/', CurrentUserView.as_view(), name='current-user'),
     path('sayt_foydalanuvchilari/', FoydalanuvchiStatistikaView.as_view(), name='foydalanuvchi-statistika'),
-    path('auth/password/change/', ChangePasswordView.as_view(), name='change-password'),
     path(
     'statistics/last6months/<str:lang>/',
     Last6MonthsStatisticDataViewSet.as_view({'get': 'list'}),
-    name='last6months-stats'
-)
+    name='last6months-stats'),
+    path('token-info/', TokenInfoView.as_view(), name='token-info'),
 
 ]
 

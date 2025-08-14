@@ -8,30 +8,6 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
-class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField(write_only=True, required=True)
-    new_password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    new_password_confirm = serializers.CharField(write_only=True, required=True)
-
-    def validate_old_password(self, value):
-        user = self.context['request'].user
-        if not user.check_password(value):
-            raise serializers.ValidationError("Eski parol noto'g'ri.")
-        return value
-
-    def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({"new_password_confirm": "Parollar mos emas."})
-        return attrs
-
-    def save(self, **kwargs):
-        user = self.context['request'].user
-        user.set_password(self.validated_data['new_password'])
-        user.save()
-
-        # Sessiyani saqlab qolish (agar sessiya login ishlatilsa)
-        update_session_auth_hash(self.context['request'], user)
-        return user
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -40,24 +16,79 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'role', 'is_staff', 'is_superuser')
 
 
-class UserCreateSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(read_only=True)  
-    password = serializers.CharField(write_only=True, validators=[validate_password])
-    
+class UserUpdateSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(write_only=True, required=False)
+    new_password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    new_password2 = serializers.CharField(write_only=True, required=False)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'role']  
+        fields = ('username', 'first_name', 'last_name', 'role',
+                  'old_password', 'new_password', 'new_password2')
+
+    def update(self, instance, validated_data):
+        old_password = validated_data.pop('old_password', None)
+        new_password = validated_data.pop('new_password', None)
+        new_password2 = validated_data.pop('new_password2', None)
+
+        # Password o'zgartirish
+        if old_password or new_password or new_password2:
+            if not old_password or not new_password or not new_password2:
+                raise serializers.ValidationError("Eski va yangi parollarni to‘liq kiriting.")
+            if not instance.check_password(old_password):
+                raise serializers.ValidationError({"old_password": "Eski parol noto‘g‘ri."})
+            if new_password != new_password2:
+                raise serializers.ValidationError({"new_password": "Yangi parol mos kelmadi."})
+            instance.set_password(new_password)
+
+        # Boshqa fieldlarni update qilish
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    old_password = serializers.CharField(write_only=True, required=False)
+    new_password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    new_password2 = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'password', 'role', 'old_password', 'new_password', 'new_password2']
         extra_kwargs = {
             'role': {'required': True},
         }
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None)
         user = User(**validated_data)
-        user.set_password(password)  
+        if password:
+            user.set_password(password)
         user.save()
         return user
 
+    def update(self, instance, validated_data):
+        # Password o'zgartirish
+        old_password = validated_data.pop('old_password', None)
+        new_password = validated_data.pop('new_password', None)
+        new_password2 = validated_data.pop('new_password2', None)
+
+        # Agar password update qilinayotgan bo‘lsa
+        if old_password or new_password or new_password2:
+            if not old_password or not new_password or not new_password2:
+                raise serializers.ValidationError("Eski va yangi parollarni to‘liq kiriting.")
+            if not instance.check_password(old_password):
+                raise serializers.ValidationError({"old_password": "Eski parol noto‘g‘ri."})
+            if new_password != new_password2:
+                raise serializers.ValidationError({"new_password": "Yangi parol mos kelmadi."})
+            instance.set_password(new_password)
+
+        # Boshqa fieldlar update qilinmaydi
+        instance.save()
+        return instance
 
 
 class NewsImageSerializer(serializers.ModelSerializer):
