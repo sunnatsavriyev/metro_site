@@ -689,55 +689,25 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostItemRequest
         fields = [
-            'id',
-            'name',
-            'phone',
-            'email',
-            'address',
-            'passport',
-            'message',
-            'created_at',
-            'status',
+            'id','name','phone','email','address','passport','message','created_at','status'
         ]
-        read_only_fields = ['created_at']
-
-    def get_fields(self):
-        """Anonimuslar va oddiy userlar POST qilganda status maydonini olib tashlaymiz"""
-        fields = super().get_fields()
-        request = self.context.get('request')
-
-        # Faqat superadmin va Lost Item Support uchun statusni ko‘rsatamiz (POST/PUT uchun)
-        if not request or not request.user.is_authenticated or not (
-            request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"
-        ):
-            fields.pop('status', None)
-
-        return fields
+        read_only_fields = ['created_at','status'] 
 
     def to_representation(self, instance):
-        """Requestlar ro‘yxati qaytganda status faqat superadmin va Lost Item Support uchun ko‘rinadi"""
         rep = super().to_representation(instance)
         request = self.context.get('request')
+        user = getattr(request, 'user', None)
 
-        if not request or not request.user.is_authenticated or not (
-            request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"
-        ):
-            rep.pop('status', None)
+        if user and user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
+            return rep
 
-        return rep
+        return {
+            "status": rep.get("status", "pending")
+        }
 
     def create(self, validated_data):
         validated_data['status'] = 'pending'
         return super().create(validated_data)
-
-    def validate(self, attrs):
-        request = self.context.get('request')
-        if 'status' in attrs and (not request.user.is_authenticated or not (
-            request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"
-        )):
-            attrs.pop('status', None)
-        return attrs
-
 
 # class LostItemRequestSerializer(serializers.ModelSerializer):
 #     recaptcha_token = serializers.CharField(write_only=True)

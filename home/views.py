@@ -510,15 +510,17 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Faqat superuser yoki Lost Item Support requestlarni ko‘ra oladi
+        # Superuser va Lost Item Support barcha requestlarni ko‘radi
         if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             return LostItemRequest.objects.all().order_by('-created_at')
+        # Oddiy foydalanuvchi boshqa requestlarni ko‘rolmaydi
         return LostItemRequest.objects.none()
 
     def get_permissions(self):
-        # CREATE uchun anonim user ruxsat, qolganlari authenticated
+        # CREATE har doim ochiq (anonimlar yuborishi mumkin)
         if self.action == 'create':
             return [permissions.AllowAny()]
+        # Boshqa actionlar uchun faqat autentifikatsiyalangan Superuser yoki Lost Item Support
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
@@ -526,7 +528,7 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
-        # Faqat superuser yoki Lost Item Support statusni o'zgartira oladi
+        
         if not (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             serializer.validated_data.pop('status', None)
         serializer.save()
@@ -546,7 +548,6 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
             "unanswered_requests": unanswered
         }
 
-        # Faqat Superuser va Lost Item Support requestslarni ko‘radi
         if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
@@ -555,10 +556,10 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
                 "requests": serializer.data
             })
 
-        # Oddiy foydalanuvchilar faqat stats ko‘radi
         return Response({"stats": stats})
 
-# --- Foydalanuvchi Statistika ---
+
+  
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class FoydalanuvchiStatistikaView(APIView):
     permission_classes = [permissions.AllowAny]  
