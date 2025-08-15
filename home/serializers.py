@@ -27,11 +27,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                   'old_password', 'new_password', 'new_password2')
 
     def update(self, instance, validated_data):
+        # Password o'zgartirish faqat agar kiritilgan bo'lsa
         old_password = validated_data.pop('old_password', None)
         new_password = validated_data.pop('new_password', None)
         new_password2 = validated_data.pop('new_password2', None)
 
-        # Password o'zgartirish
         if old_password or new_password or new_password2:
             if not old_password or not new_password or not new_password2:
                 raise serializers.ValidationError("Eski va yangi parollarni to‘liq kiriting.")
@@ -48,47 +48,37 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
+
+
 class UserCreateSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
     old_password = serializers.CharField(write_only=True, required=False)
     new_password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
     new_password2 = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'role', 'old_password', 'new_password', 'new_password2']
+        fields = ['id', 'username', 'role', 'old_password', 'new_password', 'new_password2']
         extra_kwargs = {
             'role': {'required': True},
         }
 
     def create(self, validated_data):
-        password = validated_data.pop('password', None)
-        user = User(**validated_data)
-        if password:
-            user.set_password(password)
-        user.save()
-        return user
-
-    def update(self, instance, validated_data):
-        # Password o'zgartirish
-        old_password = validated_data.pop('old_password', None)
+        # Oddiy create: password faqat new_password orqali
         new_password = validated_data.pop('new_password', None)
         new_password2 = validated_data.pop('new_password2', None)
 
-        # Agar password update qilinayotgan bo‘lsa
-        if old_password or new_password or new_password2:
-            if not old_password or not new_password or not new_password2:
-                raise serializers.ValidationError("Eski va yangi parollarni to‘liq kiriting.")
-            if not instance.check_password(old_password):
-                raise serializers.ValidationError({"old_password": "Eski parol noto‘g‘ri."})
+        if new_password or new_password2:
             if new_password != new_password2:
                 raise serializers.ValidationError({"new_password": "Yangi parol mos kelmadi."})
-            instance.set_password(new_password)
+        
+        user = User(**validated_data)
+        if new_password:
+            user.set_password(new_password)
+        user.save()
+        return user
 
-        # Boshqa fieldlar update qilinmaydi
-        instance.save()
-        return instance
 
 
 class NewsImageSerializer(serializers.ModelSerializer):
