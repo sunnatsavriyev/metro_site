@@ -40,7 +40,7 @@ from django.db.models import Sum
 from .pagination import StandardResultsSetPagination
 from collections import defaultdict
 from django.conf import settings
-
+from drf_spectacular.utils import extend_schema
 
 
 
@@ -79,28 +79,52 @@ class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
+    permission_classes = [IsNewsEditorOrReadOnly]
 
     def get_serializer_class(self):
-        
         return NewsSerializer
 
-    @action(detail=False, url_path='uz')
+    # --- List endpoints ---
+    @extend_schema(responses=NewsSerializerUz(many=True))
+    @action(detail=False, url_path='uz', serializer_class=NewsSerializerUz)
     def list_uz(self, request):
-        queryset = self.get_queryset()
-        serializer = NewsSerializerUz(queryset, many=True)
+        serializer = NewsSerializerUz(self.get_queryset(), many=True)
         return Response(serializer.data)
 
-    @action(detail=False, url_path='ru')
+    @extend_schema(responses=NewsSerializerRu(many=True))
+    @action(detail=False, url_path='ru', serializer_class=NewsSerializerRu)
     def list_ru(self, request):
-        queryset = self.get_queryset()
-        serializer = NewsSerializerRu(queryset, many=True)
+        serializer = NewsSerializerRu(self.get_queryset(), many=True)
         return Response(serializer.data)
 
-    @action(detail=False, url_path='en')
+    @extend_schema(responses=NewsSerializerEn(many=True))
+    @action(detail=False, url_path='en', serializer_class=NewsSerializerEn)
     def list_en(self, request):
-        queryset = self.get_queryset()
-        serializer = NewsSerializerEn(queryset, many=True)
+        serializer = NewsSerializerEn(self.get_queryset(), many=True)
         return Response(serializer.data)
+
+    # --- Retrieve endpoints ---
+    @extend_schema(responses=NewsSerializerUz)
+    @action(detail=True, url_path='uz', serializer_class=NewsSerializerUz)
+    def retrieve_uz(self, request, pk=None):
+        obj = self.get_object()
+        serializer = NewsSerializerUz(obj)
+        return Response(serializer.data)
+
+    @extend_schema(responses=NewsSerializerRu)
+    @action(detail=True, url_path='ru', serializer_class=NewsSerializerRu)
+    def retrieve_ru(self, request, pk=None):
+        obj = self.get_object()
+        serializer = NewsSerializerRu(obj)
+        return Response(serializer.data)
+
+    @extend_schema(responses=NewsSerializerEn)
+    @action(detail=True, url_path='en', serializer_class=NewsSerializerEn)
+    def retrieve_en(self, request, pk=None):
+        obj = self.get_object()
+        serializer = NewsSerializerEn(obj)
+        return Response(serializer.data)
+
 
 
 # --- News Like ---
@@ -227,26 +251,47 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsHRUserOrReadOnly]
 
     def get_serializer_class(self):
-        # default — barcha tillarni qaytaradi
         return JobVacancySerializer
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
-    @action(detail=False, url_path='uz')
+    # --- List endpoints ---
+    @action(detail=False, url_path='uz', serializer_class=JobVacancySerializerUz)
     def list_uz(self, request):
         serializer = JobVacancySerializerUz(self.get_queryset(), many=True)
         return Response(serializer.data)
 
-    @action(detail=False, url_path='ru')
+    @action(detail=False, url_path='ru', serializer_class=JobVacancySerializerRu)
     def list_ru(self, request):
         serializer = JobVacancySerializerRu(self.get_queryset(), many=True)
         return Response(serializer.data)
 
-    @action(detail=False, url_path='en')
+    @action(detail=False, url_path='en', serializer_class=JobVacancySerializerEn)
     def list_en(self, request):
         serializer = JobVacancySerializerEn(self.get_queryset(), many=True)
         return Response(serializer.data)
+
+    # --- Retrieve endpoints ---
+    @action(detail=True, url_path='uz', serializer_class=JobVacancySerializerUz)
+    def retrieve_uz(self, request, pk=None):
+        obj = self.get_object()
+        serializer = JobVacancySerializerUz(obj)
+        return Response(serializer.data)
+
+    @action(detail=True, url_path='ru', serializer_class=JobVacancySerializerRu)
+    def retrieve_ru(self, request, pk=None):
+        obj = self.get_object()
+        serializer = JobVacancySerializerRu(obj)
+        return Response(serializer.data)
+
+    @action(detail=True, url_path='en', serializer_class=JobVacancySerializerEn)
+    def retrieve_en(self, request, pk=None):
+        obj = self.get_object()
+        serializer = JobVacancySerializerEn(obj)
+        return Response(serializer.data)
+
+
 
 # --- JobVacancyRequest ---
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
