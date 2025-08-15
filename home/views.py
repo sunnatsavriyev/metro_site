@@ -10,7 +10,7 @@ from .models import (
 )
 from .throttles import LostItemBurstRateThrottle
 from .serializers import (
-    NewsCreateSerializer,
+    NewsCreateSerializer,NewsSerializer,
     NewsCreateSerializerRu, NewsCreateSerializerUz, NewsCreateSerializerEn,
     NewsSerializerUz, NewsSerializerRu, NewsSerializerEn,
     LatestNewsSerializerRu, LatestNewsSerializerUz, LatestNewsSerializerEn,
@@ -79,65 +79,28 @@ class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
-    serializer_class = NewsCreateSerializer
-    permission_classes = [IsNewsEditorOrReadOnly] 
 
-   
     def get_serializer_class(self):
         
-        if self.action in ['create', 'update', 'partial_update']:
-            return NewsCreateSerializer
-        return NewsSerializerUz
+        return NewsSerializer
 
-    def perform_create(self, serializer):
-        serializer.save()
+    @action(detail=False, url_path='uz')
+    def list_uz(self, request):
+        queryset = self.get_queryset()
+        serializer = NewsSerializerUz(queryset, many=True)
+        return Response(serializer.data)
 
-    def perform_update(self, serializer):
-        serializer.save()
+    @action(detail=False, url_path='ru')
+    def list_ru(self, request):
+        queryset = self.get_queryset()
+        serializer = NewsSerializerRu(queryset, many=True)
+        return Response(serializer.data)
 
-
-
-
-class NewsViewSetUz(viewsets.ModelViewSet):
-    queryset = News.objects.all()
-    permission_classes = [IsNewsEditorOrReadOnly]
-    # pagination_class = StandardResultsSetPagination
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return NewsCreateSerializerUz
-        return NewsSerializerUz
-
-    def perform_create(self, serializer):
-        serializer.save()
-
-
-class NewsViewSetRu(viewsets.ModelViewSet):
-    queryset = News.objects.all()
-    permission_classes = [IsNewsEditorOrReadOnly]
-    # pagination_class = StandardResultsSetPagination
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return NewsCreateSerializerRu
-        return NewsSerializerRu
-
-    def perform_create(self, serializer):
-        serializer.save()
-
-
-class NewsViewSetEn(viewsets.ModelViewSet):
-    queryset = News.objects.all()
-    permission_classes = [IsNewsEditorOrReadOnly]
-    # pagination_class = StandardResultsSetPagination
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return NewsCreateSerializerEn
-        return NewsSerializerEn
-
-    def perform_create(self, serializer):
-        serializer.save()
+    @action(detail=False, url_path='en')
+    def list_en(self, request):
+        queryset = self.get_queryset()
+        serializer = NewsSerializerEn(queryset, many=True)
+        return Response(serializer.data)
 
 
 # --- News Like ---
@@ -260,51 +223,30 @@ class MainNewsListViewEn(ListAPIView):
 
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSet(viewsets.ModelViewSet):
-    serializer_class = JobVacancySerializer
+    queryset = JobVacancy.objects.all()
     permission_classes = [IsHRUserOrReadOnly]
 
-    def get_queryset(self):
-        return JobVacancy.objects.all()
+    def get_serializer_class(self):
+        # default — barcha tillarni qaytaradi
+        return JobVacancySerializer
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    @action(detail=False, url_path='uz')
+    def list_uz(self, request):
+        serializer = JobVacancySerializerUz(self.get_queryset(), many=True)
+        return Response(serializer.data)
 
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class JobVacancyViewSetUz(viewsets.ModelViewSet):
-    serializer_class = JobVacancySerializerUz
-    permission_classes = [IsHRUserOrReadOnly]
+    @action(detail=False, url_path='ru')
+    def list_ru(self, request):
+        serializer = JobVacancySerializerRu(self.get_queryset(), many=True)
+        return Response(serializer.data)
 
-    def get_queryset(self):
-        return JobVacancy.objects.all()
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class JobVacancyViewSetRu(viewsets.ModelViewSet):
-    serializer_class = JobVacancySerializerRu
-    permission_classes = [IsHRUserOrReadOnly]
-
-    def get_queryset(self):
-        return JobVacancy.objects.all()
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class JobVacancyViewSetEn(viewsets.ModelViewSet):
-    serializer_class = JobVacancySerializerEn
-    permission_classes = [IsHRUserOrReadOnly]
-
-    def get_queryset(self):
-        return JobVacancy.objects.all()
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
+    @action(detail=False, url_path='en')
+    def list_en(self, request):
+        serializer = JobVacancySerializerEn(self.get_queryset(), many=True)
+        return Response(serializer.data)
 
 # --- JobVacancyRequest ---
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')

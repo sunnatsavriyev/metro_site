@@ -324,6 +324,21 @@ class MainNewsSerializerEn(serializers.ModelSerializer):
 
 
 
+class NewsSerializer(serializers.ModelSerializer):
+    images = NewsImageSerializer(many=True, read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title_uz', 'title_ru', 'title_en',
+            'description_uz', 'description_ru', 'description_en',
+            'fullContent_uz', 'fullContent_ru', 'fullContent_en',
+            'publishedAt', 'category_uz', 'category_ru', 'category_en',
+            'like_count', 'images'
+        ]
+
+
 class NewsSerializerUz(serializers.ModelSerializer):
     images = NewsImageSerializer(many=True, read_only=True)
     like_count = serializers.IntegerField(read_only=True)
