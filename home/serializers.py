@@ -159,6 +159,57 @@ class NewsCreateSerializerEn(serializers.ModelSerializer):
             NewsImage.objects.create(news=news, image=image)
         return news
 
+
+
+class NewsCreateSerializer(serializers.ModelSerializer):
+    images = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
+    
+    language = serializers.ChoiceField(choices=['uz', 'ru', 'en'], write_only=True)
+
+    class Meta:
+        model = News
+        fields = [
+            'title_uz', 'description_uz', 'fullContent_uz',
+            'title_ru', 'description_ru', 'fullContent_ru',
+            'title_en', 'description_en', 'fullContent_en',
+            'publishedAt', 'category_uz', 'category_ru', 'category_en',
+            'images', 'language'
+        ]
+
+    def create(self, validated_data):
+        images = validated_data.pop('images', [])
+        language = validated_data.pop('language', 'uz') 
+
+        news_data = {}
+        if language == 'uz':
+            news_data['title_uz'] = validated_data.get('title_uz')
+            news_data['description_uz'] = validated_data.get('description_uz')
+            news_data['fullContent_uz'] = validated_data.get('fullContent_uz')
+            news_data['category_uz'] = validated_data.get('category_uz')
+        elif language == 'ru':
+            news_data['title_ru'] = validated_data.get('title_ru')
+            news_data['description_ru'] = validated_data.get('description_ru')
+            news_data['fullContent_ru'] = validated_data.get('fullContent_ru')
+            news_data['category_ru'] = validated_data.get('category_ru')
+        else:
+            news_data['title_en'] = validated_data.get('title_en')
+            news_data['description_en'] = validated_data.get('description_en')
+            news_data['fullContent_en'] = validated_data.get('fullContent_en')
+            news_data['category_en'] = validated_data.get('category_en')
+
+        news_data['publishedAt'] = validated_data.get('publishedAt')
+
+        news = News.objects.create(**news_data)
+
+        for image in images:
+            NewsImage.objects.create(news=news, image=image)
+
+        return news
+
+
+
 class LatestNewsSerializerUz(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     like_count = serializers.IntegerField(read_only=True)
@@ -177,6 +228,9 @@ class LatestNewsSerializerUz(serializers.ModelSerializer):
         # Birinchi rasmni olish (agar bor bo‘lsa)
         first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
         return first_image.image.url if first_image else None
+
+
+
 
 
 class LatestNewsSerializerRu(serializers.ModelSerializer):
@@ -342,6 +396,38 @@ class CommentSerializerEn(serializers.ModelSerializer):
             'id', 'news', 'author_en',
             'content_en',  'timestamp'
         ]
+
+
+
+
+class JobVacancySerializer(serializers.ModelSerializer):
+    total_requests = serializers.SerializerMethodField()
+    answered_requests = serializers.SerializerMethodField()
+    rejected_requests = serializers.SerializerMethodField()
+    pending_requests = serializers.SerializerMethodField()
+
+    class Meta:
+        model = JobVacancy
+        fields = [
+            'id', 'title_uz','title_ru','title_en', 'requirements_uz','requirements_ru', 'requirements_en', 'mutaxasislik_uz','mutaxasislik_ru', 'mutaxasislik_en',
+            'education_status_uz','education_status_ru', 'education_status_en','created_by',
+            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
+        ]
+
+
+    def get_total_requests(self, obj):
+        return obj.requests.count()
+
+    def get_answered_requests(self, obj):
+        return obj.requests.filter(status='answered').count()
+
+    def get_rejected_requests(self, obj):
+        return obj.requests.filter(status='rejected').count()
+
+    def get_pending_requests(self, obj):
+        return obj.requests.filter(status='pending').count()
+
+
 
 
 class JobVacancySerializerUz(serializers.ModelSerializer):

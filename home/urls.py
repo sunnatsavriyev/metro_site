@@ -6,9 +6,10 @@ from rest_framework_simplejwt.views import (
 )
 
 from .views import (
+    NewsViewSet,
     NewsViewSetUz, NewsViewSetRu, NewsViewSetEn,
     CommentViewSetUz, CommentViewSetRu, CommentViewSetEn,
-    NewsLikeView,
+    NewsLikeView,JobVacancyViewSet,
     JobVacancyViewSetUz, JobVacancyViewSetRu, JobVacancyViewSetEn,
     JobVacancyRequestViewSetUz, JobVacancyRequestViewSetRu, JobVacancyRequestViewSetEn,
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
@@ -23,12 +24,14 @@ from .views import (
 
 router = DefaultRouter()
 # News / Comments / Vacancies / Statistics
+router.register(r'news', NewsViewSet, basename='news')
 router.register(r'news/uz', NewsViewSetUz, basename='news-uz')
 router.register(r'news/ru', NewsViewSetRu, basename='news-ru')
 router.register(r'news/en', NewsViewSetEn, basename='news-en')
 router.register(r'comments/uz', CommentViewSetUz, basename='comments-uz')
 router.register(r'comments/ru', CommentViewSetRu, basename='comments-ru')
 router.register(r'comments/en', CommentViewSetEn, basename='comments-en')
+router.register(r'job-vacancies', JobVacancyViewSet, basename='job-vacancies')
 router.register(r'job-vacancies/uz', JobVacancyViewSetUz, basename='job-vacancies-uz')
 router.register(r'job-vacancies/ru', JobVacancyViewSetRu, basename='job-vacancies-ru')
 router.register(r'job-vacancies/en', JobVacancyViewSetEn, basename='job-vacancies-en')

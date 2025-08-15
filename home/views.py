@@ -10,6 +10,7 @@ from .models import (
 )
 from .throttles import LostItemBurstRateThrottle
 from .serializers import (
+    NewsCreateSerializer,
     NewsCreateSerializerRu, NewsCreateSerializerUz, NewsCreateSerializerEn,
     NewsSerializerUz, NewsSerializerRu, NewsSerializerEn,
     LatestNewsSerializerRu, LatestNewsSerializerUz, LatestNewsSerializerEn,
@@ -19,7 +20,7 @@ from .serializers import (
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
     JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer
+    LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer,JobVacancySerializer
 )
 from rest_framework.decorators import action
 from .permissions import (
@@ -33,7 +34,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta ,date
 from django.utils import timezone
-CACHE_TIMEOUT = 60
+CACHE_TIMEOUT = 10
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from .pagination import StandardResultsSetPagination
@@ -48,7 +49,7 @@ class CurrentUserView(generics.RetrieveAPIView):
 
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
-            return UserUpdateSerializer
+            return UserUpdateSerializer  
         return CustomUserSerializer
 
     def get_object(self):
@@ -75,6 +76,28 @@ class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # --- News ---
+
+class NewsViewSet(viewsets.ModelViewSet):
+    queryset = News.objects.all()
+    serializer_class = NewsCreateSerializer
+    permission_classes = [IsNewsEditorOrReadOnly] 
+
+   
+    def get_serializer_class(self):
+        
+        if self.action in ['create', 'update', 'partial_update']:
+            return NewsCreateSerializer
+        return NewsSerializerUz
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+
+
 class NewsViewSetUz(viewsets.ModelViewSet):
     queryset = News.objects.all()
     permission_classes = [IsNewsEditorOrReadOnly]
@@ -234,6 +257,18 @@ class MainNewsListViewEn(ListAPIView):
 
 
 # --- Job Vacancies ---
+
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+class JobVacancyViewSet(viewsets.ModelViewSet):
+    serializer_class = JobVacancySerializer
+    permission_classes = [IsHRUserOrReadOnly]
+
+    def get_queryset(self):
+        return JobVacancy.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
 
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSetUz(viewsets.ModelViewSet):
