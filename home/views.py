@@ -520,7 +520,10 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
         # CREATE har doim ochiq (anonimlar yuborishi mumkin)
         if self.action == 'create':
             return [permissions.AllowAny()]
-        # Boshqa actionlar uchun faqat autentifikatsiyalangan Superuser yoki Lost Item Support
+        # LIST hamma ko‘ra oladi, ammo queryset orqali requestlar cheklangan
+        if self.action == 'list':
+            return [permissions.AllowAny()]
+        # UPDATE, DELETE faqat authenticated
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
@@ -548,6 +551,7 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
             "unanswered_requests": unanswered
         }
 
+        # Superuser va Lost Item Support barcha requests ko‘radi
         if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
@@ -556,8 +560,8 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
                 "requests": serializer.data
             })
 
+        # Oddiy foydalanuvchi faqat stats + status ko‘rishi mumkin (requestlar yo‘q)
         return Response({"stats": stats})
-
 
   
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
