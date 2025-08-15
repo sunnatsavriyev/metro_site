@@ -508,26 +508,32 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
     serializer_class = LostItemRequestSerializer
     throttle_classes = [LostItemBurstRateThrottle]
 
-    @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def get_queryset(self):
         user = self.request.user
+        # Faqat superuser yoki Lost Item Support requestlarni ko‘ra oladi
         if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             return LostItemRequest.objects.all().order_by('-created_at')
         return LostItemRequest.objects.none()
 
     def get_permissions(self):
-        if self.action in ['create', 'list']:
+        # CREATE uchun anonim user ruxsat, qolganlari authenticated
+        if self.action == 'create':
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
+    def perform_create(self, serializer):
+        serializer.save(status='pending')  # Yangi request doimo pending bo‘ladi
+
     def perform_update(self, serializer):
         user = self.request.user
+        # Faqat superuser yoki Lost Item Support statusni o'zgartira oladi
         if not (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             serializer.validated_data.pop('status', None)
         serializer.save()
 
     @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def list(self, request, *args, **kwargs):
+        user = request.user
         total = LostItemRequest.objects.count()
         answered = LostItemRequest.objects.filter(status='answered').count()
         unanswered = total - answered
@@ -540,7 +546,8 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
             "unanswered_requests": unanswered
         }
 
-        if request.user.is_authenticated and (request.user.is_superuser or getattr(request.user, 'role', '') == "Lost Item Support"):
+        # Faqat Superuser va Lost Item Support requestslarni ko‘radi
+        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
             queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
             return Response({
@@ -548,8 +555,8 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
                 "requests": serializer.data
             })
 
+        # Oddiy foydalanuvchilar faqat stats ko‘radi
         return Response({"stats": stats})
-
 
 # --- Foydalanuvchi Statistika ---
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
