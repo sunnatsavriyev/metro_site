@@ -689,25 +689,42 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostItemRequest
         fields = [
-            'id','name','phone','email','address','passport','message','created_at','status'
+            'id', 'name', 'phone', 'email', 'address',
+            'passport', 'message', 'created_at', 'status'
         ]
-        read_only_fields = ['created_at','status'] 
+        read_only_fields = ['created_at']  # status endi PUT/PATCH da ko'rinadi
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         request = self.context.get('request')
         user = getattr(request, 'user', None)
 
-        if user and user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
+        # Superuser yoki Lost Item Support bo‘lsa — hamma maydonlar
+        if user and user.is_authenticated and (
+            user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"
+        ):
             return rep
 
-        return {
-            "status": rep.get("status", "pending")
-        }
+        # Oddiy foydalanuvchiga ham status ko‘rinadi
+        return rep
 
     def create(self, validated_data):
         validated_data['status'] = 'pending'
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        # Agar superuser yoki Lost Item Support bo‘lmasa, status o'zgartirishga ruxsat yo'q
+        if not (user and user.is_authenticated and (
+            user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"
+        )):
+            validated_data.pop('status', None)
+
+        return super().update(instance, validated_data)
+
+
 
 # class LostItemRequestSerializer(serializers.ModelSerializer):
 #     recaptcha_token = serializers.CharField(write_only=True)
