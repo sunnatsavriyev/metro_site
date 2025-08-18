@@ -553,11 +553,15 @@ class JobVacancySerializerEn(serializers.ModelSerializer):
             return full_name if full_name else user.username
         return None
 
-# serializers.py
+
 
 
 # ----------------Uzbek----------------
 class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
+    # JobVacancy uchun ID orqali yuborish
+    jobVacancy = serializers.PrimaryKeyRelatedField(
+        queryset=JobVacancy.objects.all()
+    )
     status_display = serializers.SerializerMethodField()
 
     class Meta:
@@ -589,20 +593,12 @@ class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
 
         return data
 
-    def get_fields(self):
-        """Browsable API formasi uchun statusni yashirish"""
-        fields = super().get_fields()
-        request = self.context.get('request')
 
-        if not request or not request.user.is_authenticated or (
-            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-        ):
-            fields.pop('status', None)
-        return fields
-
-
-# ----------------Ruscha----------------
+# ---------------- Ruscha ----------------
 class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
+    jobVacancy = serializers.PrimaryKeyRelatedField(
+        queryset=JobVacancy.objects.all()
+    )
     status_display = serializers.SerializerMethodField()
 
     class Meta:
@@ -625,7 +621,6 @@ class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
         data = super().to_representation(instance)
         request = self.context.get('request')
 
-        # Agar foydalanuvchi HR yoki Admin bo‘lmasa — status yashiriladi
         if not request or not request.user.is_authenticated or (
             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
         ):
@@ -634,21 +629,13 @@ class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
 
         return data
 
-    def get_fields(self):
-        """Browsable API formasi uchun statusni yashirish"""
-        fields = super().get_fields()
-        request = self.context.get('request')
-
-        if not request or not request.user.is_authenticated or (
-            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-        ):
-            fields.pop('status', None)
-        return fields
-
 
 
 # ---------------- Inglizcha ----------------
 class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
+    jobVacancy = serializers.PrimaryKeyRelatedField(
+        queryset=JobVacancy.objects.all()
+    )
     status_display = serializers.SerializerMethodField()
 
     class Meta:
@@ -671,7 +658,6 @@ class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
         data = super().to_representation(instance)
         request = self.context.get('request')
 
-        # Agar foydalanuvchi HR yoki Admin bo‘lmasa — status yashiriladi
         if not request or not request.user.is_authenticated or (
             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
         ):
@@ -679,18 +665,6 @@ class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
             data.pop('status_display', None)
 
         return data
-
-    def get_fields(self):
-        """Browsable API formasi uchun statusni yashirish"""
-        fields = super().get_fields()
-        request = self.context.get('request')
-
-        if not request or not request.user.is_authenticated or (
-            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-        ):
-            fields.pop('status', None)
-        return fields
-
 
 
 
