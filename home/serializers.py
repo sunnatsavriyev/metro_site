@@ -413,7 +413,6 @@ class CommentSerializerEn(serializers.ModelSerializer):
 
 
 
-
 class JobVacancySerializer(serializers.ModelSerializer):
     total_requests = serializers.SerializerMethodField()
     answered_requests = serializers.SerializerMethodField()
@@ -424,11 +423,11 @@ class JobVacancySerializer(serializers.ModelSerializer):
     class Meta:
         model = JobVacancy
         fields = [
-            'id', 'title_uz','title_ru','title_en', 'requirements_uz','requirements_ru', 'requirements_en', 'mutaxasislik_uz','mutaxasislik_ru', 'mutaxasislik_en',
+            'id', 'title_uz','title_ru','title_en', 'requirements_uz','requirements_ru', 'requirements_en', 
+            'mutaxasislik_uz','mutaxasislik_ru', 'mutaxasislik_en',
             'education_status_uz','education_status_ru', 'education_status_en','created_by',
             'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests',
         ]
-
 
     def get_total_requests(self, obj):
         return obj.requests.count()
@@ -443,11 +442,11 @@ class JobVacancySerializer(serializers.ModelSerializer):
         return obj.requests.filter(status='pending').count()
 
     def get_created_by(self, obj):
-        if obj.created_by:
-            return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username
+        user = getattr(obj, 'created_by', None)
+        if user:
+            full_name = f"{user.first_name} {user.last_name}".strip()
+            return full_name if full_name else user.username
         return None
-
-
 
 
 class JobVacancySerializerUz(serializers.ModelSerializer):
@@ -477,6 +476,12 @@ class JobVacancySerializerUz(serializers.ModelSerializer):
     def get_pending_requests(self, obj):
         return obj.requests.filter(status='pending').count()
 
+    def get_created_by(self, obj):
+        user = getattr(obj, 'created_by', None)
+        if user:
+            full_name = f"{user.first_name} {user.last_name}".strip()
+            return full_name if full_name else user.username
+        return None
 
 
 class JobVacancySerializerRu(serializers.ModelSerializer):
@@ -506,6 +511,12 @@ class JobVacancySerializerRu(serializers.ModelSerializer):
     def get_pending_requests(self, obj):
         return obj.requests.filter(status='pending').count()
 
+    def get_created_by(self, obj):
+        user = getattr(obj, 'created_by', None)
+        if user:
+            full_name = f"{user.first_name} {user.last_name}".strip()
+            return full_name if full_name else user.username
+        return None
 
 
 class JobVacancySerializerEn(serializers.ModelSerializer):
@@ -534,6 +545,13 @@ class JobVacancySerializerEn(serializers.ModelSerializer):
 
     def get_pending_requests(self, obj):
         return obj.requests.filter(status='pending').count()
+
+    def get_created_by(self, obj):
+        user = getattr(obj, 'created_by', None)
+        if user:
+            full_name = f"{user.first_name} {user.last_name}".strip()
+            return full_name if full_name else user.username
+        return None
 
 # serializers.py
 

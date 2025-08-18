@@ -265,45 +265,46 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         return JobVacancySerializer
 
-    # --- CREATE: avtomatik 'created_by' qo‘shish ---
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
     # --- List endpoints ---
     @action(detail=False, url_path='uz', serializer_class=JobVacancySerializerUz)
     def list_uz(self, request):
-        serializer = JobVacancySerializerUz(self.get_queryset(), many=True)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(detail=False, url_path='ru', serializer_class=JobVacancySerializerRu)
     def list_ru(self, request):
-        serializer = JobVacancySerializerRu(self.get_queryset(), many=True)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(detail=False, url_path='en', serializer_class=JobVacancySerializerEn)
     def list_en(self, request):
-        serializer = JobVacancySerializerEn(self.get_queryset(), many=True)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     # --- Retrieve endpoints ---
     @action(detail=True, url_path='uz', serializer_class=JobVacancySerializerUz)
     def retrieve_uz(self, request, pk=None):
         obj = self.get_object()
-        serializer = JobVacancySerializerUz(obj)
+        serializer = self.get_serializer(obj)
         return Response(serializer.data)
 
     @action(detail=True, url_path='ru', serializer_class=JobVacancySerializerRu)
     def retrieve_ru(self, request, pk=None):
         obj = self.get_object()
-        serializer = JobVacancySerializerRu(obj)
+        serializer = self.get_serializer(obj)
         return Response(serializer.data)
 
     @action(detail=True, url_path='en', serializer_class=JobVacancySerializerEn)
     def retrieve_en(self, request, pk=None):
         obj = self.get_object()
-        serializer = JobVacancySerializerEn(obj)
+        serializer = self.get_serializer(obj)
         return Response(serializer.data)
-
 
 
 # --- JobVacancyRequest ---
