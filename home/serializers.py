@@ -89,7 +89,7 @@ class NewsImageSerializer(serializers.ModelSerializer):
 
 class NewsCreateSerializerUz(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=False
+        child=serializers.ImageField(), write_only=False, required=False
     )
 
     class Meta:
@@ -109,7 +109,7 @@ class NewsCreateSerializerUz(serializers.ModelSerializer):
 
 class NewsCreateSerializerRu(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=False
+        child=serializers.ImageField(), write_only=False, required=False
     )
 
     class Meta:
@@ -131,7 +131,7 @@ class NewsCreateSerializerRu(serializers.ModelSerializer):
 
 class NewsCreateSerializerEn(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=False
+        child=serializers.ImageField(), write_only=False, required=False
     )
 
     class Meta:
@@ -153,7 +153,7 @@ class NewsCreateSerializerEn(serializers.ModelSerializer):
 
 class NewsCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=False
+        child=serializers.ImageField(), write_only=False, required=False
     )
     
     language = serializers.ChoiceField(choices=['uz', 'ru', 'en'], write_only=True)
@@ -411,6 +411,7 @@ class JobVacancySerializer(serializers.ModelSerializer):
     rejected_requests = serializers.SerializerMethodField()
     pending_requests = serializers.SerializerMethodField()
     created_by = serializers.SerializerMethodField()
+
     class Meta:
         model = JobVacancy
         fields = [
@@ -445,6 +446,7 @@ class JobVacancySerializerUz(serializers.ModelSerializer):
     answered_requests = serializers.SerializerMethodField()
     rejected_requests = serializers.SerializerMethodField()
     pending_requests = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
 
     class Meta:
         model = JobVacancy
@@ -473,6 +475,7 @@ class JobVacancySerializerRu(serializers.ModelSerializer):
     answered_requests = serializers.SerializerMethodField()
     rejected_requests = serializers.SerializerMethodField()
     pending_requests = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
 
     class Meta:
         model = JobVacancy
@@ -501,6 +504,7 @@ class JobVacancySerializerEn(serializers.ModelSerializer):
     answered_requests = serializers.SerializerMethodField()
     rejected_requests = serializers.SerializerMethodField()
     pending_requests = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
 
     class Meta:
         model = JobVacancy

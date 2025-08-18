@@ -253,6 +253,7 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         return JobVacancySerializer
 
+    # --- CREATE: avtomatik 'created_by' qo‘shish ---
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
