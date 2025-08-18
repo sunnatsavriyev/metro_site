@@ -88,19 +88,31 @@ class NewsViewSet(viewsets.ModelViewSet):
     @extend_schema(responses=NewsSerializerUz(many=True))
     @action(detail=False, url_path='uz', serializer_class=NewsSerializerUz)
     def list_uz(self, request):
-        serializer = NewsSerializerUz(self.get_queryset(), many=True)
+        serializer = NewsSerializerUz(
+            self.get_queryset(),
+            many=True,
+            context={'request': request}  # <-- qo‘shildi
+        )
         return Response(serializer.data)
 
     @extend_schema(responses=NewsSerializerRu(many=True))
     @action(detail=False, url_path='ru', serializer_class=NewsSerializerRu)
     def list_ru(self, request):
-        serializer = NewsSerializerRu(self.get_queryset(), many=True)
+        serializer = NewsSerializerRu(
+            self.get_queryset(),
+            many=True,
+            context={'request': request}  # <-- qo‘shildi
+        )
         return Response(serializer.data)
 
     @extend_schema(responses=NewsSerializerEn(many=True))
     @action(detail=False, url_path='en', serializer_class=NewsSerializerEn)
     def list_en(self, request):
-        serializer = NewsSerializerEn(self.get_queryset(), many=True)
+        serializer = NewsSerializerEn(
+            self.get_queryset(),
+            many=True,
+            context={'request': request}  # <-- qo‘shildi
+        )
         return Response(serializer.data)
 
     # --- Retrieve endpoints ---
@@ -108,21 +120,21 @@ class NewsViewSet(viewsets.ModelViewSet):
     @action(detail=True, url_path='uz', serializer_class=NewsSerializerUz)
     def retrieve_uz(self, request, pk=None):
         obj = self.get_object()
-        serializer = NewsSerializerUz(obj)
+        serializer = NewsSerializerUz(obj, context={'request': request})  # <-- qo‘shildi
         return Response(serializer.data)
 
     @extend_schema(responses=NewsSerializerRu)
     @action(detail=True, url_path='ru', serializer_class=NewsSerializerRu)
     def retrieve_ru(self, request, pk=None):
         obj = self.get_object()
-        serializer = NewsSerializerRu(obj)
+        serializer = NewsSerializerRu(obj, context={'request': request})  # <-- qo‘shildi
         return Response(serializer.data)
 
     @extend_schema(responses=NewsSerializerEn)
     @action(detail=True, url_path='en', serializer_class=NewsSerializerEn)
     def retrieve_en(self, request, pk=None):
         obj = self.get_object()
-        serializer = NewsSerializerEn(obj)
+        serializer = NewsSerializerEn(obj, context={'request': request})  # <-- qo‘shildi
         return Response(serializer.data)
 
 

@@ -82,9 +82,18 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class NewsImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = NewsImage
         fields = ['id', 'image']
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+
 
 
 class NewsCreateSerializerUz(serializers.ModelSerializer):
