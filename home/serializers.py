@@ -555,10 +555,9 @@ class JobVacancySerializerEn(serializers.ModelSerializer):
 
 
 
-
-# ----------------Uzbek----------------
+# ----------------- Uzbek -----------------
 class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
-    # JobVacancy uchun ID orqali yuborish
+    # ID orqali bog‘lash va GETda ID ko‘rsatish
     jobVacancy = serializers.PrimaryKeyRelatedField(
         queryset=JobVacancy.objects.all()
     )
@@ -583,18 +582,15 @@ class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
-
-        # Agar foydalanuvchi HR yoki Admin bo‘lmasa — status yashiriladi
         if not request or not request.user.is_authenticated or (
             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
         ):
             data.pop('status', None)
             data.pop('status_display', None)
-
         return data
 
 
-# ---------------- Ruscha ----------------
+# ----------------- Rus -----------------
 class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
     jobVacancy = serializers.PrimaryKeyRelatedField(
         queryset=JobVacancy.objects.all()
@@ -620,18 +616,15 @@ class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
-
         if not request or not request.user.is_authenticated or (
             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
         ):
             data.pop('status', None)
             data.pop('status_display', None)
-
         return data
 
 
-
-# ---------------- Inglizcha ----------------
+# ----------------- Inglizcha -----------------
 class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
     jobVacancy = serializers.PrimaryKeyRelatedField(
         queryset=JobVacancy.objects.all()
@@ -657,13 +650,11 @@ class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
-
         if not request or not request.user.is_authenticated or (
             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
         ):
             data.pop('status', None)
             data.pop('status_display', None)
-
         return data
 
 
