@@ -34,7 +34,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta ,date
 from django.utils import timezone
-CACHE_TIMEOUT = 10
+CACHE_TIMEOUT = 30 
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from .pagination import StandardResultsSetPagination
