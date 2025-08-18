@@ -410,13 +410,13 @@ class JobVacancySerializer(serializers.ModelSerializer):
     answered_requests = serializers.SerializerMethodField()
     rejected_requests = serializers.SerializerMethodField()
     pending_requests = serializers.SerializerMethodField()
-
+    created_by = serializers.SerializerMethodField()
     class Meta:
         model = JobVacancy
         fields = [
             'id', 'title_uz','title_ru','title_en', 'requirements_uz','requirements_ru', 'requirements_en', 'mutaxasislik_uz','mutaxasislik_ru', 'mutaxasislik_en',
             'education_status_uz','education_status_ru', 'education_status_en','created_by',
-            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
+            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests',
         ]
 
 
@@ -431,6 +431,11 @@ class JobVacancySerializer(serializers.ModelSerializer):
 
     def get_pending_requests(self, obj):
         return obj.requests.filter(status='pending').count()
+
+    def get_created_by(self, obj):
+        if obj.created_by:
+            return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username
+        return None
 
 
 
