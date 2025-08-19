@@ -44,13 +44,13 @@ from drf_spectacular.utils import extend_schema
 
 
 
-class CurrentUserView(generics.RetrieveAPIView):
+class CurrentUserView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return UserUpdateSerializer  
-        return CustomUserSerializer
+        if self.request.method in ["PUT", "PATCH"]:
+            return UserUpdateSerializer   
+        return CustomUserSerializer       
 
     def get_object(self):
         return self.request.user
@@ -67,6 +67,9 @@ class UserListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = UserCreateSerializer
     permission_classes = [IsSuperUser]
 
+    def get_queryset(self):
+        return User.objects.filter(is_superuser=False)
+
 
 class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
@@ -74,6 +77,8 @@ class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsSuperUser]
 
 
+    def get_queryset(self):
+        return User.objects.filter(is_superuser=False)
 
 # --- News ---
 
@@ -177,31 +182,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(news_id=news_id)
         return qs
 
-
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-# class CommentViewSetRu(viewsets.ModelViewSet):
-#     serializer_class = CommentSerializerRu
-#     permission_classes = [permissions.AllowAny]
-
-#     def get_queryset(self):
-#         news_id = self.request.query_params.get('news_id')
-#         qs = Comment.objects.all().order_by('-timestamp')
-#         if news_id:
-#             qs = qs.filter(news_id=news_id)
-#         return qs
-
-
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-# class CommentViewSetEn(viewsets.ModelViewSet):
-#     serializer_class = CommentSerializerEn
-#     permission_classes = [permissions.AllowAny]
-
-#     def get_queryset(self):
-#         news_id = self.request.query_params.get('news_id')
-#         qs = Comment.objects.all().order_by('-timestamp')
-#         if news_id:
-#             qs = qs.filter(news_id=news_id)
-#         return qs
 
 
 # --- News Images ---
