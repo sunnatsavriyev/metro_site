@@ -144,7 +144,7 @@ class NewsLikeView(APIView):
     permission_classes = [permissions.AllowAny]  
 
     # Like sonini olish
-    @method_decorator(cache_page(CACHE_TIMEOUT))
+    # @method_decorator(cache_page(CACHE_TIMEOUT))
     def get(self, request, pk):
         news = get_object_or_404(News, pk=pk)
         return Response({
@@ -257,7 +257,7 @@ class MainNewsListViewEn(ListAPIView):
 
 # --- Job Vacancies ---
 
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSet(viewsets.ModelViewSet):
     queryset = JobVacancy.objects.all()
     permission_classes = [IsHRUserOrReadOnly]
@@ -308,7 +308,7 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
 
 
 # --- JobVacancyRequest ---
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -331,7 +331,7 @@ class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
@@ -354,7 +354,7 @@ class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
