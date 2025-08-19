@@ -27,7 +27,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                   'old_password', 'new_password', 'new_password2')
 
     def update(self, instance, validated_data):
-        # Password o'zgartirish faqat agar kiritilgan bo'lsa
         old_password = validated_data.pop('old_password', None)
         new_password = validated_data.pop('new_password', None)
         new_password2 = validated_data.pop('new_password2', None)
@@ -53,29 +52,19 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    old_password = serializers.CharField(write_only=True, required=False)
-    new_password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
-    new_password2 = serializers.CharField(write_only=True, required=False)
+    password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'role', 'old_password', 'new_password', 'new_password2']
+        fields = ['id', 'username', 'role', 'password']
         extra_kwargs = {
             'role': {'required': True},
         }
 
     def create(self, validated_data):
-        # Oddiy create: password faqat new_password orqali
-        new_password = validated_data.pop('new_password', None)
-        new_password2 = validated_data.pop('new_password2', None)
-
-        if new_password or new_password2:
-            if new_password != new_password2:
-                raise serializers.ValidationError({"new_password": "Yangi parol mos kelmadi."})
-        
+        password = validated_data.pop('password')
         user = User(**validated_data)
-        if new_password:
-            user.set_password(new_password)
+        user.set_password(password)  # Parolni xashlab saqlash
         user.save()
         return user
 
