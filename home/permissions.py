@@ -49,5 +49,5 @@ class IsLostItemSupport(permissions.BasePermission):
         return (
             request.user and 
             request.user.is_authenticated and 
-            getattr(request.user, 'role', '') == 'lost_item_support'
+            getattr(request.user, 'role', '') == 'Lost_item_support'
         )
