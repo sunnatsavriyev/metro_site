@@ -15,10 +15,10 @@ from .serializers import (
     NewsSerializerUz, NewsSerializerRu, NewsSerializerEn,
     LatestNewsSerializerRu, LatestNewsSerializerUz, LatestNewsSerializerEn,
     MainNewsSerializerRu, MainNewsSerializerUz, MainNewsSerializerEn,
-    CommentSerializerUz, CommentSerializerRu, CommentSerializerEn,
+    CommentSerializer,
     NewsImageSerializer,
     JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
-    JobVacancyRequestSerializerUz, JobVacancyRequestSerializerRu, JobVacancyRequestSerializerEn,
+    JobVacancyRequestSerializer, 
     StatisticDataSerializer, StatisticDataWriteSerializer,
     LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer,JobVacancySerializer
 )
@@ -166,8 +166,8 @@ class NewsLikeView(APIView):
 
 # --- Comments ---
 @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-class CommentViewSetUz(viewsets.ModelViewSet):
-    serializer_class = CommentSerializerUz
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
@@ -178,37 +178,57 @@ class CommentViewSetUz(viewsets.ModelViewSet):
         return qs
 
 
-@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-class CommentViewSetRu(viewsets.ModelViewSet):
-    serializer_class = CommentSerializerRu
-    permission_classes = [permissions.AllowAny]
+# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+# class CommentViewSetRu(viewsets.ModelViewSet):
+#     serializer_class = CommentSerializerRu
+#     permission_classes = [permissions.AllowAny]
 
-    def get_queryset(self):
-        news_id = self.request.query_params.get('news_id')
-        qs = Comment.objects.all().order_by('-timestamp')
-        if news_id:
-            qs = qs.filter(news_id=news_id)
-        return qs
+#     def get_queryset(self):
+#         news_id = self.request.query_params.get('news_id')
+#         qs = Comment.objects.all().order_by('-timestamp')
+#         if news_id:
+#             qs = qs.filter(news_id=news_id)
+#         return qs
 
 
-@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-class CommentViewSetEn(viewsets.ModelViewSet):
-    serializer_class = CommentSerializerEn
-    permission_classes = [permissions.AllowAny]
+# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+# class CommentViewSetEn(viewsets.ModelViewSet):
+#     serializer_class = CommentSerializerEn
+#     permission_classes = [permissions.AllowAny]
 
-    def get_queryset(self):
-        news_id = self.request.query_params.get('news_id')
-        qs = Comment.objects.all().order_by('-timestamp')
-        if news_id:
-            qs = qs.filter(news_id=news_id)
-        return qs
+#     def get_queryset(self):
+#         news_id = self.request.query_params.get('news_id')
+#         qs = Comment.objects.all().order_by('-timestamp')
+#         if news_id:
+#             qs = qs.filter(news_id=news_id)
+#         return qs
 
 
 # --- News Images ---
 class NewsImageViewSet(viewsets.ModelViewSet):
     queryset = NewsImage.objects.all()
     serializer_class = NewsImageSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsNewsEditorOrReadOnly] 
+
+    def create(self, request, *args, **kwargs):
+        news_id = request.data.get("news")
+        images = request.FILES.getlist("images")
+
+        if not news_id or not images:
+            return Response(
+                {"error": "news va kamida 1 ta image yuborilishi shart!"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        news = get_object_or_404(News, pk=news_id)
+
+        created_images = []
+        for img in images:
+            news_image = NewsImage.objects.create(news=news, image=img)
+            created_images.append(news_image)
+
+        serializer = self.get_serializer(created_images, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 # --- Latest News ---
@@ -309,11 +329,11 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
 
 # --- JobVacancyRequest ---
 # @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
+class JobVacancyRequestViewSet(viewsets.ModelViewSet):
     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
     def get_serializer_class(self):
-        return JobVacancyRequestSerializerUz
+        return JobVacancyRequestSerializer
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
@@ -331,50 +351,50 @@ class JobVacancyRequestViewSetUz(viewsets.ModelViewSet):
         serializer.save(status='pending')
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
-    queryset = JobVacancyRequest.objects.all().order_by('-created_at')
+# # @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+# class JobVacancyRequestViewSetRu(viewsets.ModelViewSet):
+#     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
-    def get_serializer_class(self):
-        return JobVacancyRequestSerializerRu
+#     def get_serializer_class(self):
+#         return JobVacancyRequestSerializerRu
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
-            return [IsHRUserOrReadOnly()]
-        return [permissions.AllowAny()]
+#     def get_permissions(self):
+#         if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
+#             return [IsHRUserOrReadOnly()]
+#         return [permissions.AllowAny()]
 
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return JobVacancyRequest.objects.none()
-        if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
-            return JobVacancyRequest.objects.all().order_by('-created_at')
-        return JobVacancyRequest.objects.none()
+#     def get_queryset(self):
+#         if not self.request.user.is_authenticated:
+#             return JobVacancyRequest.objects.none()
+#         if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
+#             return JobVacancyRequest.objects.all().order_by('-created_at')
+#         return JobVacancyRequest.objects.none()
 
-    def perform_create(self, serializer):
-        serializer.save(status='pending')
+#     def perform_create(self, serializer):
+#         serializer.save(status='pending')
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
-    queryset = JobVacancyRequest.objects.all().order_by('-created_at')
+# # @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+# class JobVacancyRequestViewSetEn(viewsets.ModelViewSet):
+#     queryset = JobVacancyRequest.objects.all().order_by('-created_at')
 
-    def get_serializer_class(self):
-        return JobVacancyRequestSerializerEn
+#     def get_serializer_class(self):
+#         return JobVacancyRequestSerializerEn
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
-            return [IsHRUserOrReadOnly()]
-        return [permissions.AllowAny()]
+#     def get_permissions(self):
+#         if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
+#             return [IsHRUserOrReadOnly()]
+#         return [permissions.AllowAny()]
 
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return JobVacancyRequest.objects.none()
-        if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
-            return JobVacancyRequest.objects.all().order_by('-created_at')
-        return JobVacancyRequest.objects.none()
+#     def get_queryset(self):
+#         if not self.request.user.is_authenticated:
+#             return JobVacancyRequest.objects.none()
+#         if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
+#             return JobVacancyRequest.objects.all().order_by('-created_at')
+#         return JobVacancyRequest.objects.none()
 
-    def perform_create(self, serializer):
-        serializer.save(status='pending')
+#     def perform_create(self, serializer):
+#         serializer.save(status='pending')
 
 
 # --- StatisticData ---

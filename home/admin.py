@@ -72,10 +72,10 @@ class NewsAdmin(admin.ModelAdmin):
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ['news', 'author_uz', 'author_ru', 'author_en', 'timestamp']
+    list_display = ['news', 'author', 'timestamp']
     list_filter = ['timestamp']
     ordering = ['-timestamp']
-    search_fields = ['author_uz', 'author_ru', 'author_en', 'content_uz', 'content_ru', 'content_en']
+    search_fields = ['author',  'content', ]
 
 @admin.register(JobVacancy)
 class JobVacancyAdmin(admin.ModelAdmin):
@@ -86,8 +86,8 @@ class JobVacancyAdmin(admin.ModelAdmin):
 
 @admin.register(JobVacancyRequest)
 class JobVacancyRequestAdmin(admin.ModelAdmin):
-    list_display = ['name_uz', 'name_ru', 'name_en', 'phone', 'email', 'status', 'created_at', 'file']
-    search_fields = ['name_uz', 'name_ru', 'name_en', 'phone', 'email']
+    list_display = ['name', 'phone', 'email', 'status', 'created_at', 'file']
+    search_fields = ['name', 'phone', 'email']
     list_filter = ['status', 'created_at']
     ordering = ['-created_at']
 

@@ -3,9 +3,9 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     NewsViewSet,
-    CommentViewSetUz, CommentViewSetRu, CommentViewSetEn,
+    CommentViewSet,NewsImageViewSet,
     NewsLikeView, JobVacancyViewSet,
-    JobVacancyRequestViewSetUz, JobVacancyRequestViewSetRu, JobVacancyRequestViewSetEn,
+    JobVacancyRequestViewSet, 
     StatisticDataViewSetUz, StatisticDataViewSetRu, StatisticDataViewSetEn,
     LostItemRequestViewSet, FoydalanuvchiStatistikaView,
     LatestNewsListViewUz, LatestNewsListViewRu, LatestNewsListViewEn,
@@ -18,19 +18,16 @@ from .views import (
 router = DefaultRouter()
 # Asosiy news endpoint
 router.register(r'news', NewsViewSet, basename='news')
+router.register(r'news-images', NewsImageViewSet, basename='news-images')
 
 # Comments
-router.register(r'comments/uz', CommentViewSetUz, basename='comments-uz')
-router.register(r'comments/ru', CommentViewSetRu, basename='comments-ru')
-router.register(r'comments/en', CommentViewSetEn, basename='comments-en')
+router.register(r'comments', CommentViewSet, basename='comments')
 
 # Jobs
 router.register(r'job-vacancies', JobVacancyViewSet, basename='job-vacancies')
 
 # Job vacancy requests
-router.register(r'job-vacancy-requests/uz', JobVacancyRequestViewSetUz, basename='job-vacancy-requests-uz')
-router.register(r'job-vacancy-requests/ru', JobVacancyRequestViewSetRu, basename='job-vacancy-requests-ru')
-router.register(r'job-vacancy-requests/en', JobVacancyRequestViewSetEn, basename='job-vacancy-requests-en')
+router.register(r'job-vacancy-requests', JobVacancyRequestViewSet, basename='job-vacancy-requests')
 
 # Statistics
 router.register(r'statistics/uz', StatisticDataViewSetUz, basename='statistics-uz')

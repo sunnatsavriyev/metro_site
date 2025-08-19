@@ -82,18 +82,23 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class NewsImageSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField()
+    news = serializers.PrimaryKeyRelatedField(
+        queryset=News.objects.all(),
+        write_only=True   
+    )
 
     class Meta:
         model = NewsImage
-        fields = ['id', 'image']
+        fields = ['id', 'news', 'image']
 
     def get_image(self, obj):
         request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
-
+        if obj.image and hasattr(obj.image, 'url'):
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 
 class NewsCreateSerializerUz(serializers.ModelSerializer):
@@ -382,34 +387,16 @@ class NewsSerializerEn(serializers.ModelSerializer):
         ]
 
 
-class CommentSerializerUz(serializers.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = [
-            'id', 'news', 'author_uz',
-            'content_uz',  'timestamp'
+            'id', 'news', 'author',
+            'content',  'timestamp'
         ]
 
 
 
-class CommentSerializerRu(serializers.ModelSerializer):
-    class Meta:
-        model = Comment
-        fields = [
-            'id', 'news', 'author_ru',
-            'content_ru',  'timestamp'
-        ]
-
-
-
-
-class CommentSerializerEn(serializers.ModelSerializer):
-    class Meta:
-        model = Comment
-        fields = [
-            'id', 'news', 'author_en',
-            'content_en',  'timestamp'
-        ]
 
 
 
@@ -556,7 +543,7 @@ class JobVacancySerializerEn(serializers.ModelSerializer):
 
 
 # ----------------- Uzbek -----------------
-class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
+class JobVacancyRequestSerializer(serializers.ModelSerializer):
     # ID orqali bog‘lash va GETda ID ko‘rsatish
     jobVacancy = serializers.PrimaryKeyRelatedField(
         queryset=JobVacancy.objects.all()
@@ -566,7 +553,7 @@ class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
     class Meta:
         model = JobVacancyRequest
         fields = [
-            'id', 'jobVacancy', 'name_uz', 'phone', 'email', 'file',
+            'id', 'jobVacancy', 'name', 'phone', 'email', 'file',
             'status', 'status_display', 'created_at'
         ]
         read_only_fields = ['created_at']
@@ -591,71 +578,71 @@ class JobVacancyRequestSerializerUz(serializers.ModelSerializer):
 
 
 # ----------------- Rus -----------------
-class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
-    jobVacancy = serializers.PrimaryKeyRelatedField(
-        queryset=JobVacancy.objects.all()
-    )
-    status_display = serializers.SerializerMethodField()
+# class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
+#     jobVacancy = serializers.PrimaryKeyRelatedField(
+#         queryset=JobVacancy.objects.all()
+#     )
+#     status_display = serializers.SerializerMethodField()
 
-    class Meta:
-        model = JobVacancyRequest
-        fields = [
-            'id', 'jobVacancy', 'name_ru', 'phone', 'email', 'file',
-            'status', 'status_display', 'created_at'
-        ]
-        read_only_fields = ['created_at']
+#     class Meta:
+#         model = JobVacancyRequest
+#         fields = [
+#             'id', 'jobVacancy', 'name_ru', 'phone', 'email', 'file',
+#             'status', 'status_display', 'created_at'
+#         ]
+#         read_only_fields = ['created_at']
 
-    def get_status_display(self, obj):
-        mapping = {
-            'pending': "Рассматривается",
-            'answered': "Ответ дан",
-            'rejected': "Отклонено",
-        }
-        return mapping.get(obj.status, obj.status)
+#     def get_status_display(self, obj):
+#         mapping = {
+#             'pending': "Рассматривается",
+#             'answered': "Ответ дан",
+#             'rejected': "Отклонено",
+#         }
+#         return mapping.get(obj.status, obj.status)
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated or (
-            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-        ):
-            data.pop('status', None)
-            data.pop('status_display', None)
-        return data
+#     def to_representation(self, instance):
+#         data = super().to_representation(instance)
+#         request = self.context.get('request')
+#         if not request or not request.user.is_authenticated or (
+#             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+#         ):
+#             data.pop('status', None)
+#             data.pop('status_display', None)
+#         return data
 
 
-# ----------------- Inglizcha -----------------
-class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
-    jobVacancy = serializers.PrimaryKeyRelatedField(
-        queryset=JobVacancy.objects.all()
-    )
-    status_display = serializers.SerializerMethodField()
+# # ----------------- Inglizcha -----------------
+# class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
+#     jobVacancy = serializers.PrimaryKeyRelatedField(
+#         queryset=JobVacancy.objects.all()
+#     )
+#     status_display = serializers.SerializerMethodField()
 
-    class Meta:
-        model = JobVacancyRequest
-        fields = [
-            'id', 'jobVacancy', 'name_en', 'phone', 'email', 'file',
-            'status', 'status_display', 'created_at'
-        ]
-        read_only_fields = ['created_at']
+#     class Meta:
+#         model = JobVacancyRequest
+#         fields = [
+#             'id', 'jobVacancy', 'name_en', 'phone', 'email', 'file',
+#             'status', 'status_display', 'created_at'
+#         ]
+#         read_only_fields = ['created_at']
 
-    def get_status_display(self, obj):
-        mapping = {
-            'pending': "pending",
-            'answered': "answered",
-            'rejected': "rejected",
-        }
-        return mapping.get(obj.status, obj.status)
+#     def get_status_display(self, obj):
+#         mapping = {
+#             'pending': "pending",
+#             'answered': "answered",
+#             'rejected': "rejected",
+#         }
+#         return mapping.get(obj.status, obj.status)
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated or (
-            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-        ):
-            data.pop('status', None)
-            data.pop('status_display', None)
-        return data
+#     def to_representation(self, instance):
+#         data = super().to_representation(instance)
+#         request = self.context.get('request')
+#         if not request or not request.user.is_authenticated or (
+#             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
+#         ):
+#             data.pop('status', None)
+#             data.pop('status_display', None)
+#         return data
 
 
 

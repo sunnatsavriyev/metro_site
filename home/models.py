@@ -86,16 +86,12 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Yangilik / Новость / News"
     )
-    author_uz = models.CharField("Muallif (uz)", max_length=100, blank=True, null=True)
-    author_ru = models.CharField("Автор (ru)", max_length=100, blank=True, null=True)
-    author_en = models.CharField("Author (en)", max_length=100, blank=True, null=True)
+    author = models.CharField("Muallif", max_length=100, blank=True, null=True)
 
-    content_uz = models.TextField("Izoh (uz)", blank=True, null=True)
-    content_ru = models.TextField("Комментарий (ru)", blank=True, null=True)
-    content_en = models.TextField("Comment (en)", blank=True, null=True)
+    content= models.TextField("Izoh", blank=True, null=True)
 
     timestamp = models.DateTimeField(
-        "Yaratilgan vaqt / Время создания / Created At",
+        "Yaratilgan vaqt",
         default=timezone.now
     )
 
@@ -160,9 +156,7 @@ class JobVacancyRequest(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Vakansiya"
     )
-    name_uz = models.CharField("Ism (uz)", max_length=100, blank=True, null=True)
-    name_ru = models.CharField("Имя (ru)", max_length=100, blank=True, null=True)
-    name_en = models.CharField("Name (en)", max_length=100, blank=True, null=True)
+    name = models.CharField("Ism (uz)", max_length=100, blank=True, null=True)
     phone = models.CharField("Telefon", max_length=20, blank=True, null=True)
     email = models.EmailField("Email", blank=True, null=True)
     file = models.FileField("Fayl", upload_to='jobVacancyRequests/', null=True, blank=True)
