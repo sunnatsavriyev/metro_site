@@ -188,27 +188,31 @@ class CommentViewSet(viewsets.ModelViewSet):
 class NewsImageViewSet(viewsets.ModelViewSet):
     queryset = NewsImage.objects.all()
     serializer_class = NewsImageSerializer
-    permission_classes = [IsNewsEditorOrReadOnly] 
+    permission_classes = [IsNewsEditorOrReadOnly]
 
     def create(self, request, *args, **kwargs):
         news_id = request.data.get("news")
-        images = request.FILES.getlist("images")
-
-        if not news_id or not images:
-            return Response(
-                {"error": "news va kamida 1 ta image yuborilishi shart!"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not news_id:
+            return Response({"error": "news id yuborilishi kerak"}, status=status.HTTP_400_BAD_REQUEST)
 
         news = get_object_or_404(News, pk=news_id)
 
-        created_images = []
-        for img in images:
-            news_image = NewsImage.objects.create(news=news, image=img)
-            created_images.append(news_image)
+        # 1) bir nechta rasm yuborilgan bo‘lsa
+        images = request.FILES.getlist("images")
+        if images:
+            created_images = []
+            for img in images:
+                obj = NewsImage.objects.create(news=news, image=img)
+                created_images.append(obj)
+            serializer = self.get_serializer(created_images, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        serializer = self.get_serializer(created_images, many=True, context={'request': request})
+        # 2) agar bitta rasm "image" bilan yuborilsa
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 
 # --- Latest News ---

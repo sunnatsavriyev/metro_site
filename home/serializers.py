@@ -70,24 +70,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 
-class NewsImageSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField()
-    news = serializers.PrimaryKeyRelatedField(
-        queryset=News.objects.all(),
-        write_only=True   
-    )
 
-    class Meta:
-        model = NewsImage
-        fields = ['id', 'news', 'image']
-
-    def get_image(self, obj):
-        request = self.context.get('request')
-        if obj.image and hasattr(obj.image, 'url'):
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
 
 
 class NewsCreateSerializerUz(serializers.ModelSerializer):
@@ -154,51 +137,33 @@ class NewsCreateSerializerEn(serializers.ModelSerializer):
 
 
 
+class NewsImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsImage
+        fields = ['id', 'news', 'image']
+
+
 class NewsCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(), write_only=False, required=False
+        child=serializers.ImageField(), write_only=True, required=False
     )
-    
-    language = serializers.ChoiceField(choices=['uz', 'ru', 'en'], write_only=True)
 
     class Meta:
         model = News
         fields = [
-            'title_uz', 'description_uz', 'fullContent_uz',
-            'title_ru', 'description_ru', 'fullContent_ru',
-            'title_en', 'description_en', 'fullContent_en',
+            'id',
+            'title_uz', 'title_ru', 'title_en',
+            'description_uz', 'description_ru', 'description_en',
+            'fullContent_uz', 'fullContent_ru', 'fullContent_en',
             'publishedAt', 'category_uz', 'category_ru', 'category_en',
-            'images', 'language'
+            'images'
         ]
 
     def create(self, validated_data):
         images = validated_data.pop('images', [])
-        language = validated_data.pop('language', 'uz') 
-
-        news_data = {}
-        if language == 'uz':
-            news_data['title_uz'] = validated_data.get('title_uz')
-            news_data['description_uz'] = validated_data.get('description_uz')
-            news_data['fullContent_uz'] = validated_data.get('fullContent_uz')
-            news_data['category_uz'] = validated_data.get('category_uz')
-        elif language == 'ru':
-            news_data['title_ru'] = validated_data.get('title_ru')
-            news_data['description_ru'] = validated_data.get('description_ru')
-            news_data['fullContent_ru'] = validated_data.get('fullContent_ru')
-            news_data['category_ru'] = validated_data.get('category_ru')
-        else:
-            news_data['title_en'] = validated_data.get('title_en')
-            news_data['description_en'] = validated_data.get('description_en')
-            news_data['fullContent_en'] = validated_data.get('fullContent_en')
-            news_data['category_en'] = validated_data.get('category_en')
-
-        news_data['publishedAt'] = validated_data.get('publishedAt')
-
-        news = News.objects.create(**news_data)
-
+        news = News.objects.create(**validated_data)
         for image in images:
             NewsImage.objects.create(news=news, image=image)
-
         return news
 
 
