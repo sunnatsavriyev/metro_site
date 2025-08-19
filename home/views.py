@@ -469,7 +469,7 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
+        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'lost_item_support'):
             return LostItemRequest.objects.all().order_by('-created_at')
         return LostItemRequest.objects.none()
 
@@ -483,7 +483,7 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
-        if not (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
+        if not (user.is_superuser or getattr(user, 'role', '') == 'lost_item_support'):
             serializer.validated_data.pop('status', None)
         serializer.save()
 
@@ -502,7 +502,7 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
             "unanswered_requests": unanswered
         }
 
-        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == "Lost Item Support"):
+        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'lost_item_support'):
             queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
             return Response({
