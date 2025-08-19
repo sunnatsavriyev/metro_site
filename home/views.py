@@ -96,7 +96,7 @@ class NewsViewSet(viewsets.ModelViewSet):
         serializer = NewsSerializerUz(
             self.get_queryset(),
             many=True,
-            context={'request': request}  # <-- qo‘shildi
+            context={'request': request}  
         )
         return Response(serializer.data)
 
@@ -106,7 +106,7 @@ class NewsViewSet(viewsets.ModelViewSet):
         serializer = NewsSerializerRu(
             self.get_queryset(),
             many=True,
-            context={'request': request}  # <-- qo‘shildi
+            context={'request': request} 
         )
         return Response(serializer.data)
 
@@ -116,7 +116,7 @@ class NewsViewSet(viewsets.ModelViewSet):
         serializer = NewsSerializerEn(
             self.get_queryset(),
             many=True,
-            context={'request': request}  # <-- qo‘shildi
+            context={'request': request} 
         )
         return Response(serializer.data)
 
@@ -125,21 +125,21 @@ class NewsViewSet(viewsets.ModelViewSet):
     @action(detail=True, url_path='uz', serializer_class=NewsSerializerUz)
     def retrieve_uz(self, request, pk=None):
         obj = self.get_object()
-        serializer = NewsSerializerUz(obj, context={'request': request})  # <-- qo‘shildi
+        serializer = NewsSerializerUz(obj, context={'request': request}) 
         return Response(serializer.data)
 
     @extend_schema(responses=NewsSerializerRu)
     @action(detail=True, url_path='ru', serializer_class=NewsSerializerRu)
     def retrieve_ru(self, request, pk=None):
         obj = self.get_object()
-        serializer = NewsSerializerRu(obj, context={'request': request})  # <-- qo‘shildi
+        serializer = NewsSerializerRu(obj, context={'request': request}) 
         return Response(serializer.data)
 
     @extend_schema(responses=NewsSerializerEn)
     @action(detail=True, url_path='en', serializer_class=NewsSerializerEn)
     def retrieve_en(self, request, pk=None):
         obj = self.get_object()
-        serializer = NewsSerializerEn(obj, context={'request': request})  # <-- qo‘shildi
+        serializer = NewsSerializerEn(obj, context={'request': request}) 
         return Response(serializer.data)
 
 
