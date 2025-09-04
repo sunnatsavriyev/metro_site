@@ -342,7 +342,7 @@ class StatisticDataViewSetUz(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
     def get_queryset(self):
-        return StatisticData.objects.all()
+        return StatisticData.objects.all().order_by('-id')
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -361,7 +361,7 @@ class StatisticDataViewSetRu(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
     def get_queryset(self):
-        return StatisticData.objects.all()
+        return StatisticData.objects.all().order_by('-id')
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -380,7 +380,7 @@ class StatisticDataViewSetEn(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
     def get_queryset(self):
-        return StatisticData.objects.all()
+        return StatisticData.objects.all().order_by('-id')
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
