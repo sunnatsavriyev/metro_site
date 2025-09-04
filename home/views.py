@@ -263,7 +263,7 @@ class MainNewsListViewEn(ListAPIView):
 
 # @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSet(viewsets.ModelViewSet):
-    queryset = JobVacancy.objects.all()
+    queryset = JobVacancy.objects.all().order_by('-created_at')
     permission_classes = [IsHRUserOrReadOnly]
 
     def get_serializer_class(self):
