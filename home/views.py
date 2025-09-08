@@ -574,3 +574,16 @@ class TokenInfoView(APIView):
             "refresh": str(refresh),
             "expires_in": expires_in,
         }, status=status.HTTP_200_OK)
+    
+
+
+
+
+class TestPingView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        # Cron-job yuborayotgan data {"1": "1"}
+        if request.data.get("1") == "1":
+            return Response({"pong": 2})
+        return Response({"pong": "Xato ma'lumot"})
