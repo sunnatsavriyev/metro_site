@@ -12,7 +12,7 @@ from .views import (
     MainNewsListViewUz, MainNewsListViewRu, MainNewsListViewEn,
     StatisticDataListView, CurrentUserView,
     UserListCreateAPIView, UserRetrieveUpdateDestroyAPIView,
-    Last6MonthsStatisticDataViewSet, TokenInfoView
+    Last6MonthsStatisticDataViewSet, TokenInfoView, TestPingView
 )
 
 router = DefaultRouter()
@@ -103,4 +103,5 @@ urlpatterns = [
     path('api/me/', CurrentUserView.as_view(), name='current-user'),
     path('sayt_foydalanuvchilari/', FoydalanuvchiStatistikaView.as_view(), name='foydalanuvchi-statistika'),
     path('token-info/', TokenInfoView.as_view(), name='token-info'),
+    path("api/test/", TestPingView.as_view(), name="test-ping"),
 ]
