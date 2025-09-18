@@ -170,7 +170,7 @@ class NewsLikeView(APIView):
 
 
 # --- Comments ---
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [permissions.AllowAny]
@@ -216,21 +216,21 @@ class NewsImageViewSet(viewsets.ModelViewSet):
 
 
 # --- Latest News ---
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class LatestNewsListViewUz(ListAPIView):
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = LatestNewsSerializerUz
     permission_classes = [permissions.AllowAny]
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class LatestNewsListViewRu(ListAPIView):
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = LatestNewsSerializerRu
     permission_classes = [permissions.AllowAny]
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class LatestNewsListViewEn(ListAPIView):
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = LatestNewsSerializerEn
@@ -238,21 +238,21 @@ class LatestNewsListViewEn(ListAPIView):
 
 
 # --- Main News ---
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class MainNewsListViewUz(ListAPIView):
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = MainNewsSerializerUz
     permission_classes = [permissions.AllowAny]
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class MainNewsListViewRu(ListAPIView):
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = MainNewsSerializerRu
     permission_classes = [permissions.AllowAny]
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class MainNewsListViewEn(ListAPIView):
     queryset = News.objects.all().order_by('-publishedAt')[:5]
     serializer_class = MainNewsSerializerEn
@@ -261,7 +261,7 @@ class MainNewsListViewEn(ListAPIView):
 
 # --- Job Vacancies ---
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSet(viewsets.ModelViewSet):
     queryset = JobVacancy.objects.all().order_by('-id')
     permission_classes = [IsHRUserOrReadOnly]
@@ -336,8 +336,8 @@ class JobVacancyRequestViewSet(viewsets.ModelViewSet):
 
 
 # --- StatisticData ---
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
 class StatisticDataViewSetUz(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
@@ -355,8 +355,8 @@ class StatisticDataViewSetUz(viewsets.ModelViewSet):
         return context
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
 class StatisticDataViewSetRu(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
@@ -374,8 +374,8 @@ class StatisticDataViewSetRu(viewsets.ModelViewSet):
         return context
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='list')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='retrieve')
 class StatisticDataViewSetEn(viewsets.ModelViewSet):
     permission_classes = [IsStatisticianOrReadOnly]
 
@@ -515,7 +515,7 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
 
 
 
-# @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
+@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class FoydalanuvchiStatistikaView(APIView):
     permission_classes = [permissions.AllowAny]  
 
