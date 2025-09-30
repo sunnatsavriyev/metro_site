@@ -22,6 +22,7 @@ from .serializers import (
     StatisticDataSerializer, StatisticDataWriteSerializer,
     LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer,JobVacancySerializer
 )
+from django.contrib.auth import authenticate
 from rest_framework.decorators import action
 from .permissions import (
     IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport
@@ -587,3 +588,25 @@ class TestPingView(APIView):
         if request.data.get("1") == "1":
             return Response({"pong": 2})
         return Response({"pong": "Xato ma'lumot"})
+    
+    
+    
+    
+
+class APILoginView(APIView):
+    """
+    POST: { "username": "...", "password": "..." }
+    """
+    def post(self, request):
+        data = request.data
+        username = data.get("username")
+        password = data.get("password")
+        user = authenticate(username=username, password=password)
+
+        if user is not None and user.is_active:
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "refresh": str(refresh),
+                "access": str(refresh.access_token)
+            })
+        return Response({"detail":"Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)

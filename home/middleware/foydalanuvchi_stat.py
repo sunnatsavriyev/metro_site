@@ -1,6 +1,6 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.utils import timezone
-from .models import FoydalanuvchiStatistika, SessiyaIzlovi
+from ..models import FoydalanuvchiStatistika, SessiyaIzlovi
 
 class FoydalanuvchiStatMiddleware(MiddlewareMixin):
     def process_request(self, request):

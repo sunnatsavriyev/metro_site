@@ -6,6 +6,8 @@ from .models import (
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import get_user_model
+from django.conf import settings   # settings uchun
+import requests 
 User = get_user_model()
 
 

@@ -9,13 +9,5 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 import os
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'metrosayt.settings')
-
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "metrosayt.settings")
 application = get_wsgi_application()
-
-# Superuser yaratishni bu yerga ko'chirish mumkin (settings yuklanganidan keyin)
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-if not User.objects.filter(username='Sunnat').exists():
-    User.objects.create_superuser('Sunnat', 'sunnatsavriyev39@gmail.com', 'savriyev1123')

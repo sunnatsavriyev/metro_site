@@ -72,13 +72,14 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "home.middleware.ip_login_protect.IPLoginProtectionMiddleware",  
     'allauth.account.middleware.AccountMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'home.middleware.FoydalanuvchiStatMiddleware',
+    'home.middleware.foydalanuvchi_stat.FoydalanuvchiStatMiddleware',
 ]
 
 ROOT_URLCONF = 'metrosayt.urls'
@@ -230,3 +231,15 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,                 
     "UPDATE_LAST_LOGIN": True,
 }
+
+
+
+
+BACKUP_DIR = os.path.join(MEDIA_ROOT, "data_backup")
+if not os.path.exists(BACKUP_DIR):
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+
+# Login fail counter va bloklash sozlamalari
+LOGIN_FAIL_MAX_BEFORE_BACKUP = 3   
+LOGIN_FAIL_BLOCK_ON = 4            
+LOGIN_FAIL_BLOCK_SECONDS = 60*60 
