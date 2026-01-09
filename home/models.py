@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
-
+import random
 
 # -------------------- CustomUser --------------------
 class CustomUser(AbstractUser):
@@ -35,38 +35,22 @@ class CustomUser(AbstractUser):
 
 
 
-# -------------------- News --------------------
 class News(models.Model):
-    title_uz = models.CharField("Sarlavha (uz)", max_length=255, blank=True, null=True)
-    title_ru = models.CharField("Заголовок (ru)", max_length=255, blank=True, null=True)
-    title_en = models.CharField("Title (en)", max_length=255, blank=True, null=True)
-
-    description_uz = models.TextField("Qisqa tavsif (uz)", blank=True, null=True)
-    description_ru = models.TextField("Краткое описание (ru)", blank=True, null=True)
-    description_en = models.TextField("Short description (en)", blank=True, null=True)
-
-    fullContent_uz = models.TextField("To‘liq matn (uz)", blank=True, null=True)
-    fullContent_ru = models.TextField("Полный текст (ru)", blank=True, null=True)
-    fullContent_en = models.TextField("Full text (en)", blank=True, null=True)
-
-    publishedAt = models.DateTimeField(
-        "E’lon qilingan vaqt / Дата публикации / Published At",
-        default=timezone.now
-    )
-
-    like_count = models.PositiveIntegerField(default=0, verbose_name="Likes soni")
-
-    category_uz = models.CharField("Kategoriya (uz)", max_length=100, blank=True, null=True)
-    category_ru = models.CharField("Категория (ru)", max_length=100, blank=True, null=True)
-    category_en = models.CharField("Category (en)", max_length=100, blank=True, null=True)
+    LANG_CHOICES = (('uz', 'Uz'), ('ru', 'Ru'), ('en', 'En'))
+    language = models.CharField(max_length=2, choices=LANG_CHOICES, default='uz',null=True, blank=True)
+    
+    title = models.CharField("Sarlavha", max_length=255,null=True, blank=True)
+    description = models.TextField("Qisqa tavsif",null=True, blank=True)
+    fullContent = models.TextField("To‘liq matn",null=True, blank=True)
+    category = models.CharField("Kategoriya", max_length=100,null=True, blank=True)
+    
+    publishedAt = models.DateTimeField(default=timezone.now)
+    like_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return self.title_uz or self.title_ru or self.title_en or "No title"
-
-
-    class Meta:
-        ordering = ['-id']
-
+        return f"[{self.language}] {self.title}"
+    
+    
 
 class NewsImage(models.Model):
     news = models.ForeignKey(
@@ -77,6 +61,22 @@ class NewsImage(models.Model):
     )
     image = models.ImageField("Rasm / Фото / Image", upload_to='news_images/', null=True, blank=True)
 
+class NewsLike(models.Model):
+    news = models.ForeignKey(
+        News,
+        related_name='likes',
+        on_delete=models.CASCADE
+    )
+    session_key = models.CharField(
+        max_length=40,
+        db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('news', 'session_key')
+        verbose_name = "News Like"
+        verbose_name_plural = "News Likes"
 
 # -------------------- Comment --------------------
 class Comment(models.Model):
@@ -96,43 +96,17 @@ class Comment(models.Model):
     )
 
 class JobVacancy(models.Model):
-    title_uz = models.CharField("Nom (uz)", max_length=255, blank=True, null=True)
-    title_ru = models.CharField("Название (ru)", max_length=255, blank=True, null=True)
-    title_en = models.CharField("Title (en)", max_length=255, blank=True, null=True)
+    LANG_CHOICES = (('uz', 'Uz'), ('ru', 'Ru'), ('en', 'En'))
+    language = models.CharField(max_length=2, choices=LANG_CHOICES, default='uz',null=True, blank=True)
 
-    requirements_uz = models.TextField("Talablar (uz)", blank=True, null=True)
-    requirements_ru = models.TextField("Требования (ru)", blank=True, null=True)
-    requirements_en = models.TextField("Requirements (en)", blank=True, null=True)
-
-    mutaxasislik_uz = models.TextField("Mutaxasislik (uz)", blank=True, null=True)
-    mutaxasislik_ru = models.TextField("Мутации (ru)", blank=True, null=True)
-    mutaxasislik_en = models.TextField("Mutaxasislik (en)", blank=True, null=True)
-
-    CHOOSED_STATUS_UZ = [
-        ('oliy', 'Oliy'),
-        ("o'rta", "O'rta"),
-        ("o'rta mahsus", "O'rta mahsus"),
-    ]
-    CHOOSED_STATUS_RU = [
-        ('oliy', 'Высшее'),
-        ("o'rta", "Среднее"),
-        ("o'rta mahsus", "Среднее специальное"),
-    ]
-    CHOOSED_STATUS_EN = [
-        ('oliy', 'Higher'),
-        ("o'rta", "Secondary"),
-        ("o'rta mahsus", "Specialized secondary"),
-    ]
-
-    education_status_uz = models.CharField("Ma'lumot (uz)", max_length=20, choices=CHOOSED_STATUS_UZ, blank=True, null=True)
-    education_status_ru = models.CharField("Ma'lumot (ru)", max_length=20, choices=CHOOSED_STATUS_RU, blank=True, null=True)
-    education_status_en = models.CharField("Ma'lumot (en)", max_length=20, choices=CHOOSED_STATUS_EN, blank=True, null=True)
-
-    created_by = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        verbose_name="Kim tomonidan / Кем создано / Created By"
-    )
+    title = models.CharField("Nom", max_length=255,null=True, blank=True)
+    requirements = models.TextField("Talablar",null=True, blank=True)
+    mutaxasislik = models.TextField("Mutaxasislik",null=True, blank=True)
+    
+    EDUCATION_CHOICES = [('oliy', 'Oliy/Высшее'), ('o-rta', "O'rta/Среднее"), ('o-rta-mahsus', "O'rta mahsus")]
+    education_status = models.CharField(max_length=20, choices=EDUCATION_CHOICES,null=True, blank=True)
+    
+    created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
 
     # Qo‘lda kiritiladiganlar
     answered_requests = models.PositiveIntegerField(default=0, verbose_name="Qabul qilinganlar")
@@ -140,7 +114,7 @@ class JobVacancy(models.Model):
     pending_requests = models.PositiveIntegerField(default=0, verbose_name="Ko‘rib chiqilayotganlar")
 
     def __str__(self):
-        return self.title_uz or self.title_ru or self.title_en or "No title"
+        return self.title or "No title"
 
 
 class JobVacancyRequest(models.Model):
@@ -292,15 +266,15 @@ class LostItemRequest(models.Model):
         ('pending', 'Javob berilmagan'),
         ('answered', 'Javob berilgan'),
     ]
-    name = models.CharField("Ism", max_length=100, blank=True, null=True)
+    name = models.CharField("Ism", max_length=100)
 
-    phone = models.CharField("Telefon", max_length=20, blank=True, null=True)
-    email = models.EmailField("Email", blank=True, null=True)
+    phone = models.CharField("Telefon", max_length=20, )
+    email = models.EmailField("Email", )
 
-    address = models.CharField("Manzil", max_length=255, blank=True, null=True)
-    passport = models.CharField("Passport", max_length=9, blank=True, null=True)
+    address = models.CharField("Manzil", max_length=255, )
+    passport = models.CharField("Passport", max_length=9, )
 
-    message = models.TextField("Xabar", blank=True, null=True)
+    message = models.TextField("Xabar", )
     created_at = models.DateTimeField("Qo‘shilgan vaqt", auto_now_add=True)
 
     status = models.CharField(
@@ -337,3 +311,157 @@ class SessiyaIzlovi(models.Model):
  
 
 
+
+
+
+class Announcement(models.Model):
+    LANG_CHOICES = (
+        ('uz', 'Uzbek'),
+        ('ru', 'Russian'),
+        ('en', 'English'),
+    )
+
+    lang = models.CharField(
+        max_length=2,
+        choices=LANG_CHOICES,
+        default='uz',
+        db_index=True
+    )
+
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    content = models.TextField()
+    published_at = models.DateTimeField(default=timezone.now)
+
+
+
+
+class AnnouncementImage(models.Model):
+    announcement = models.ForeignKey(
+        Announcement,
+        related_name='images',
+        on_delete=models.CASCADE
+    )
+    image = models.ImageField(upload_to='announcements/', verbose_name="Rasm")
+    
+    
+class AnnouncementComment(models.Model):
+    announcement = models.ForeignKey(
+        Announcement,
+        related_name='comments',
+        on_delete=models.CASCADE
+    )
+    author = models.CharField("Muallif", max_length=100, blank=True, null=True)
+    content = models.TextField("Izoh", blank=True, null=True)
+    timestamp = models.DateTimeField(
+        "Yaratilgan vaqt",
+        default=timezone.now
+    )
+
+
+
+class AnnouncementLike(models.Model):
+    announcement = models.ForeignKey(
+        Announcement,
+        related_name='likes',
+        on_delete=models.CASCADE
+    )
+    session_key = models.CharField(
+        max_length=40,
+        db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('announcement', 'session_key')
+        verbose_name = "E’lon like"
+        verbose_name_plural = "E’lon like-lar"
+
+
+
+class Korrupsiya(models.Model):
+    LANG_CHOICES = (('uz', 'Uz'), ('ru', 'Ru'), ('en', 'En'))
+    language = models.CharField(max_length=2, choices=LANG_CHOICES, default='uz',null=True, blank=True)
+    
+    title = models.CharField("Sarlavha", max_length=255,null=True, blank=True)
+    description = models.TextField("Qisqa tavsif",null=True, blank=True)
+    fullContent = models.TextField("To‘liq matn",null=True, blank=True)
+    category = models.CharField("Kategoriya", max_length=100,null=True, blank=True)
+    
+    publishedAt = models.DateTimeField(default=timezone.now)
+    like_count = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"[{self.language}] {self.title}"
+    
+class KorrupsiyaImage(models.Model):
+    korrupsiya = models.ForeignKey(
+        Korrupsiya,
+        related_name='images',
+        on_delete=models.CASCADE,
+        verbose_name="Korrupsiya yangiliklari"
+    )
+    image = models.ImageField("Rasm", upload_to='korrupsiya_images/', null=True, blank=True)
+    
+class KorrupsiyaLike(models.Model):
+    korrupsiya = models.ForeignKey(
+        Korrupsiya,
+        related_name='likes',
+        on_delete=models.CASCADE
+    )
+    session_key = models.CharField(
+        max_length=40,
+        db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('korrupsiya', 'session_key')
+        verbose_name = "Korrupsiya Like"
+        verbose_name_plural = "Korrupsiya Likes"
+        
+class KorrupsiyaComment(models.Model):
+    korrupsiya = models.ForeignKey(
+        Korrupsiya,
+        related_name='comments',
+        on_delete=models.CASCADE,
+        verbose_name="Korrupsiya yangiliklari"
+    )
+    author = models.CharField("Muallif", max_length=100, blank=True, null=True)
+
+    content= models.TextField("Izoh", blank=True, null=True)
+
+    timestamp = models.DateTimeField(
+        "Yaratilgan vaqt",
+        default=timezone.now
+    )
+    
+    
+    
+    
+
+
+
+class SimpleUser(models.Model):
+    first_name = models.CharField("Ism", max_length=50)
+    last_name = models.CharField("Familiya", max_length=50)
+    phone = models.CharField("Telefon", max_length=20, unique=True)
+    is_verified = models.BooleanField(default=False)  # SMS tasdiqlangan bo‘lsa True
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({self.phone})"
+
+# -------------------- Telefon tasdiqlash kodi --------------------
+class PhoneVerification(models.Model):
+    user = models.ForeignKey(SimpleUser, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=5)
+
+    @staticmethod
+    def generate_code():
+        return f"{random.randint(100000, 999999)}"

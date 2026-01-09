@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     CustomUser, News, NewsImage, Comment,
     JobVacancy,JobVacancyRequest, StatisticData,
-    LostItemRequest,FoydalanuvchiStatistika
+    LostItemRequest,FoydalanuvchiStatistika,AnnouncementImage,Announcement,AnnouncementComment,AnnouncementLike,
+    Korrupsiya, KorrupsiyaImage, KorrupsiyaComment, KorrupsiyaLike, SimpleUser
 )
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
@@ -63,10 +64,10 @@ class NewsImageInline(admin.TabularInline):
 
 @admin.register(News)
 class NewsAdmin(admin.ModelAdmin):
-    list_display = ['title_uz', 'title_ru', 'title_en', 'category_uz', 'category_ru', 'category_en', 'publishedAt', 'like_count']
-    list_filter = ['category_uz', 'category_ru', 'category_en']
+    list_display = ['title', 'category', 'publishedAt', 'like_count']
+    list_filter = ['category']
     ordering = ['-publishedAt']
-    search_fields = ['title_uz', 'title_ru', 'title_en', 'description_uz', 'description_ru', 'description_en']
+    search_fields = ['title', 'description']
     inlines = [NewsImageInline]
 
 
@@ -79,9 +80,9 @@ class CommentAdmin(admin.ModelAdmin):
 
 @admin.register(JobVacancy)
 class JobVacancyAdmin(admin.ModelAdmin):
-    list_display = ['title_uz', 'title_ru', 'title_en', 'created_by']
-    search_fields = ['title_uz', 'title_ru', 'title_en']
-    ordering = ['title_uz']
+    list_display = ['title', 'created_by']
+    search_fields = ['title']
+    ordering = ['title']
 
 
 @admin.register(JobVacancyRequest)
@@ -112,3 +113,75 @@ class FoydalanuvchiStatistikaAdmin(admin.ModelAdmin):
 
 
 
+class AnnouncementImageInline(admin.TabularInline):
+    model = AnnouncementImage
+    extra = 1
+    fields = ['image']
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = (
+        'title',
+        'published_at'
+    )
+    search_fields = (
+        'title', 
+        'description', 
+    )
+    ordering = ['-published_at']
+    inlines = [AnnouncementImageInline]
+
+@admin.register(AnnouncementComment)
+class AnnouncementCommentAdmin(admin.ModelAdmin):
+    list_display = ['announcement', 'author', 'timestamp']
+    list_filter = ['timestamp']
+    search_fields = ['author', 'content']
+    ordering = ['-timestamp']
+
+
+@admin.register(AnnouncementLike)
+class AnnouncementLikeAdmin(admin.ModelAdmin):
+    list_display = ['announcement', 'session_key', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['session_key']
+    
+    
+    
+class KorrupsiyaImageInline(admin.TabularInline):
+    model = KorrupsiyaImage
+    extra = 1
+    fields = ['image']    
+    
+    
+
+@admin.register(Korrupsiya)
+class KorrupsiyaAdmin(admin.ModelAdmin):
+    list_display = (
+        'title',
+    )
+    search_fields = (
+        'title', 
+        'description', 
+    )
+    inlines = [KorrupsiyaImageInline]
+    
+    
+@admin.register(KorrupsiyaComment)
+class KorrupsiyaCommentAdmin(admin.ModelAdmin):
+    list_display = ['korrupsiya', 'author', 'timestamp']
+    list_filter = ['timestamp']
+    search_fields = ['author', 'content']
+    ordering = ['-timestamp']
+    
+@admin.register(KorrupsiyaLike)
+class KorrupsiyaLikeAdmin(admin.ModelAdmin):
+    list_display = ['korrupsiya', 'session_key', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['session_key']
+    
+    
+@admin.register(SimpleUser)
+class SimpleUserAdmin(admin.ModelAdmin):
+    list_display = ['first_name', 'last_name', 'phone', 'is_verified']
+    search_fields = ['first_name', 'last_name', 'phone']

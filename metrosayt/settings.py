@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'axes',
     'home',
     'rest_framework',
     'rest_framework.authtoken',
@@ -34,6 +35,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'drf_spectacular',
     'corsheaders',
+    
 ]
 
 REST_FRAMEWORK = {
@@ -64,6 +66,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 AUTHENTICATION_BACKENDS = (
+    'axes.backends.AxesBackend',
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 )
@@ -77,6 +80,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'home.middleware.foydalanuvchi_stat.FoydalanuvchiStatMiddleware',
@@ -225,8 +229,8 @@ CACHES = {
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),       
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),     
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=10),       
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=10),     
     "ROTATE_REFRESH_TOKENS": False,                   
     "BLACKLIST_AFTER_ROTATION": True,                 
     "UPDATE_LAST_LOGIN": True,
@@ -243,3 +247,33 @@ if not os.path.exists(BACKUP_DIR):
 LOGIN_FAIL_MAX_BEFORE_BACKUP = 3   
 LOGIN_FAIL_BLOCK_ON = 4            
 LOGIN_FAIL_BLOCK_SECONDS = 60*60 
+
+
+AXES_FAILURE_LIMIT = 3
+
+AXES_COOLOFF_TIME = 10 / 60
+
+AXES_LOCKOUT_PARAMETERS = [
+    'ip_address',
+    'username',
+]
+
+AXES_RESET_ON_SUCCESS = True
+
+AXES_LOCK_OUT_AT_FAILURE = True
+
+AXES_IP_GETTER = 'axes.helpers.get_client_ip_address'
+
+AXES_LOCKOUT_MESSAGE = (
+    "Siz 3 marta noto‘g‘ri login/parol kiritdingiz. "
+    "IP manzilingiz 10 minutga bloklandi."
+)
+
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}

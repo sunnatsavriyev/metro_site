@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     News, Comment, NewsImage, JobVacancy,JobVacancyRequest,
-    StatisticData, LostItemRequest, CustomUser
+    StatisticData, LostItemRequest, CustomUser,Announcement,AnnouncementComment,AnnouncementImage,AnnouncementLike,
+    Korrupsiya, KorrupsiyaImage, KorrupsiyaComment,SimpleUser, PhoneVerification
 )
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import update_session_auth_hash
@@ -75,67 +76,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 
-class NewsCreateSerializerUz(serializers.ModelSerializer):
-    images = serializers.ListField(
-        child=serializers.ImageField(), write_only=False, required=False
-    )
-
-    class Meta:
-        model = News
-        fields = [
-            'title_uz',  'description_uz',
-            'fullContent_uz',  'publishedAt',
-            'category_uz',  'images'
-        ]
-
-    def create(self, validated_data):
-        images = validated_data.pop('images', [])
-        news = News.objects.create(**validated_data)
-        for image in images:
-            NewsImage.objects.create(news=news, image=image)
-        return news
-
-class NewsCreateSerializerRu(serializers.ModelSerializer):
-    images = serializers.ListField(
-        child=serializers.ImageField(), write_only=False, required=False
-    )
-
-    class Meta:
-        model = News
-        fields = [
-            'title_ru',  'description_ru',
-            'fullContent_ru',  'publishedAt',
-            'category_ru',  'images'
-        ]
-
-    def create(self, validated_data):
-        images = validated_data.pop('images', [])
-        news = News.objects.create(**validated_data)
-        for image in images:
-            NewsImage.objects.create(news=news, image=image)
-        return news
-
-
-
-class NewsCreateSerializerEn(serializers.ModelSerializer):
-    images = serializers.ListField(
-        child=serializers.ImageField(), write_only=False, required=False
-    )
-
-    class Meta:
-        model = News
-        fields = [
-            'title_en',  'description_en',
-            'fullContent_en',  'publishedAt',
-            'category_en',  'images'
-        ]
-
-    def create(self, validated_data):
-        images = validated_data.pop('images', [])
-        news = News.objects.create(**validated_data)
-        for image in images:
-            NewsImage.objects.create(news=news, image=image)
-        return news
 
 
 
@@ -154,10 +94,10 @@ class NewsCreateSerializer(serializers.ModelSerializer):
         model = News
         fields = [
             'id',
-            'title_uz', 'title_ru', 'title_en',
-            'description_uz', 'description_ru', 'description_en',
-            'fullContent_uz', 'fullContent_ru', 'fullContent_en',
-            'publishedAt', 'category_uz', 'category_ru', 'category_en',
+            'title',
+            'description',
+            'fullContent',
+            'publishedAt', 'category',
             'images'
         ]
 
@@ -170,177 +110,21 @@ class NewsCreateSerializer(serializers.ModelSerializer):
 
 
 
-class LatestNewsSerializerUz(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-    like_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_uz', 
-            'description_uz', 
-            'fullContent_uz', 
-            'publishedAt', 'category_uz',
-            'like_count', 'image'
-        ]
-
-    def get_image(self, obj):
-        # Birinchi rasmni olish (agar bor bo‘lsa)
-        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
-        return first_image.image.url if first_image else None
-
-
-
-
-
-class LatestNewsSerializerRu(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-    like_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_ru', 
-            'description_ru', 
-            'fullContent_ru', 
-            'publishedAt', 'category_ru',
-            'like_count', 'image'
-        ]
-
-    def get_image(self, obj):
-        # Birinchi rasmni olish (agar bor bo‘lsa)
-        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
-        return first_image.image.url if first_image else None
-
-class LatestNewsSerializerEn(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-    like_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_en', 
-            'description_en', 
-            'fullContent_en', 
-            'publishedAt', 'category_en',
-            'like_count', 'image'
-        ]
-
-    def get_image(self, obj):
-        # Birinchi rasmni olish (agar bor bo‘lsa)
-        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
-        return first_image.image.url if first_image else None
-
-
-
-class MainNewsSerializerUz(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_uz', 
-            'image'
-        ]
-
-    def get_image(self, obj):
-        # Birinchi rasmni olish (agar bor bo‘lsa)
-        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
-        return first_image.image.url if first_image else None
-
-
-class MainNewsSerializerRu(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_ru', 
-            'image'
-        ]
-
-    def get_image(self, obj):
-        # Birinchi rasmni olish (agar bor bo‘lsa)
-        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
-        return first_image.image.url if first_image else None
-
-
-class MainNewsSerializerEn(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_en', 
-            'image'
-        ]
-
-    def get_image(self, obj):
-        # Birinchi rasmni olish (agar bor bo‘lsa)
-        first_image = obj.images.first()  # related_name='images' bo‘lishi kerak
-        return first_image.image.url if first_image else None
 
 
 
 class NewsSerializer(serializers.ModelSerializer):
     images = NewsImageSerializer(many=True, read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-
+    
     class Meta:
         model = News
-        fields = [
-            'id', 'title_uz', 'title_ru', 'title_en',
-            'description_uz', 'description_ru', 'description_en',
-            'fullContent_uz', 'fullContent_ru', 'fullContent_en',
-            'publishedAt', 'category_uz', 'category_ru', 'category_en',
-            'like_count', 'images'
-        ]
+        fields = ['id', 'language', 'title', 'description', 'fullContent', 'category', 'publishedAt', 'like_count', 'images']
+        read_only_fields = ['language']
+        
+        
+    def get_like_count(self, obj):
+        return obj.likes.count()
 
-
-class NewsSerializerUz(serializers.ModelSerializer):
-    images = NewsImageSerializer(many=True, read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_uz', 
-            'description_uz', 
-            'fullContent_uz', 
-            'publishedAt', 'category_uz',
-            'like_count', 'images'
-        ]
-
-
-class NewsSerializerRu(serializers.ModelSerializer):
-    images = NewsImageSerializer(many=True, read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_ru', 
-            'description_ru', 
-            'fullContent_ru', 
-            'publishedAt', 'category_ru',
-            'like_count', 'images'
-        ]
-
-class NewsSerializerEn(serializers.ModelSerializer):
-    images = NewsImageSerializer(many=True, read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = News
-        fields = [
-            'id', 'title_en', 
-            'description_en', 
-            'fullContent_en', 
-            'publishedAt', 'category_en',
-            'like_count', 'images'
-        ]
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -357,20 +141,12 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class JobVacancySerializer(serializers.ModelSerializer):
-    total_requests = serializers.SerializerMethodField()
-    answered_requests = serializers.SerializerMethodField()
-    rejected_requests = serializers.SerializerMethodField()
-    pending_requests = serializers.SerializerMethodField()
-    created_by = serializers.SerializerMethodField()
-
+    total_requests = serializers.ReadOnlyField(source='requests.count')
+    # ... boshqa method fieldlarni ham bitta titlega moslab yozasiz
     class Meta:
         model = JobVacancy
-        fields = [
-            'id', 'title_uz','title_ru','title_en', 'requirements_uz','requirements_ru', 'requirements_en', 
-            'mutaxasislik_uz','mutaxasislik_ru', 'mutaxasislik_en',
-            'education_status_uz','education_status_ru', 'education_status_en','created_by',
-            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests',
-        ]
+        fields = '__all__'
+        read_only_fields = ['language', 'created_by']
 
     def get_total_requests(self, obj):
         return obj.requests.count()
@@ -391,110 +167,6 @@ class JobVacancySerializer(serializers.ModelSerializer):
             return full_name if full_name else user.username
         return None
 
-
-class JobVacancySerializerUz(serializers.ModelSerializer):
-    total_requests = serializers.SerializerMethodField()
-    answered_requests = serializers.SerializerMethodField()
-    rejected_requests = serializers.SerializerMethodField()
-    pending_requests = serializers.SerializerMethodField()
-    created_by = serializers.SerializerMethodField()
-
-    class Meta:
-        model = JobVacancy
-        fields = [
-            'id', 'title_uz', 'requirements_uz', 'mutaxasislik_uz',
-            'education_status_uz', 'created_by',
-            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
-        ]
-
-    def get_total_requests(self, obj):
-        return obj.requests.count()
-
-    def get_answered_requests(self, obj):
-        return obj.requests.filter(status='answered').count()
-
-    def get_rejected_requests(self, obj):
-        return obj.requests.filter(status='rejected').count()
-
-    def get_pending_requests(self, obj):
-        return obj.requests.filter(status='pending').count()
-
-    def get_created_by(self, obj):
-        user = getattr(obj, 'created_by', None)
-        if user:
-            full_name = f"{user.first_name} {user.last_name}".strip()
-            return full_name if full_name else user.username
-        return None
-
-
-class JobVacancySerializerRu(serializers.ModelSerializer):
-    total_requests = serializers.SerializerMethodField()
-    answered_requests = serializers.SerializerMethodField()
-    rejected_requests = serializers.SerializerMethodField()
-    pending_requests = serializers.SerializerMethodField()
-    created_by = serializers.SerializerMethodField()
-
-    class Meta:
-        model = JobVacancy
-        fields = [
-            'id', 'title_ru', 'requirements_ru', 'mutaxasislik_ru',
-            'education_status_ru', 'created_by',
-            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
-        ]
-
-    def get_total_requests(self, obj):
-        return obj.requests.count()
-
-    def get_answered_requests(self, obj):
-        return obj.requests.filter(status='answered').count()
-
-    def get_rejected_requests(self, obj):
-        return obj.requests.filter(status='rejected').count()
-
-    def get_pending_requests(self, obj):
-        return obj.requests.filter(status='pending').count()
-
-    def get_created_by(self, obj):
-        user = getattr(obj, 'created_by', None)
-        if user:
-            full_name = f"{user.first_name} {user.last_name}".strip()
-            return full_name if full_name else user.username
-        return None
-
-
-class JobVacancySerializerEn(serializers.ModelSerializer):
-    total_requests = serializers.SerializerMethodField()
-    answered_requests = serializers.SerializerMethodField()
-    rejected_requests = serializers.SerializerMethodField()
-    pending_requests = serializers.SerializerMethodField()
-    created_by = serializers.SerializerMethodField()
-
-    class Meta:
-        model = JobVacancy
-        fields = [
-            'id', 'title_en', 'requirements_en', 'mutaxasislik_en',
-            'education_status_en', 'created_by',
-            'total_requests', 'answered_requests', 'rejected_requests', 'pending_requests'
-        ]
-
-    def get_total_requests(self, obj):
-        return obj.requests.count()
-
-    def get_answered_requests(self, obj):
-        return obj.requests.filter(status='answered').count()
-
-    def get_rejected_requests(self, obj):
-        return obj.requests.filter(status='rejected').count()
-
-    def get_pending_requests(self, obj):
-        return obj.requests.filter(status='pending').count()
-
-    def get_created_by(self, obj):
-        user = getattr(obj, 'created_by', None)
-        if user:
-            full_name = f"{user.first_name} {user.last_name}".strip()
-            return full_name if full_name else user.username
-        return None
 
 
 
@@ -533,72 +205,6 @@ class JobVacancyRequestSerializer(serializers.ModelSerializer):
         return data
 
 
-# ----------------- Rus -----------------
-# class JobVacancyRequestSerializerRu(serializers.ModelSerializer):
-#     jobVacancy = serializers.PrimaryKeyRelatedField(
-#         queryset=JobVacancy.objects.all()
-#     )
-#     status_display = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = JobVacancyRequest
-#         fields = [
-#             'id', 'jobVacancy', 'name_ru', 'phone', 'email', 'file',
-#             'status', 'status_display', 'created_at'
-#         ]
-#         read_only_fields = ['created_at']
-
-#     def get_status_display(self, obj):
-#         mapping = {
-#             'pending': "Рассматривается",
-#             'answered': "Ответ дан",
-#             'rejected': "Отклонено",
-#         }
-#         return mapping.get(obj.status, obj.status)
-
-#     def to_representation(self, instance):
-#         data = super().to_representation(instance)
-#         request = self.context.get('request')
-#         if not request or not request.user.is_authenticated or (
-#             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-#         ):
-#             data.pop('status', None)
-#             data.pop('status_display', None)
-#         return data
-
-
-# # ----------------- Inglizcha -----------------
-# class JobVacancyRequestSerializerEn(serializers.ModelSerializer):
-#     jobVacancy = serializers.PrimaryKeyRelatedField(
-#         queryset=JobVacancy.objects.all()
-#     )
-#     status_display = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = JobVacancyRequest
-#         fields = [
-#             'id', 'jobVacancy', 'name_en', 'phone', 'email', 'file',
-#             'status', 'status_display', 'created_at'
-#         ]
-#         read_only_fields = ['created_at']
-
-#     def get_status_display(self, obj):
-#         mapping = {
-#             'pending': "pending",
-#             'answered': "answered",
-#             'rejected': "rejected",
-#         }
-#         return mapping.get(obj.status, obj.status)
-
-#     def to_representation(self, instance):
-#         data = super().to_representation(instance)
-#         request = self.context.get('request')
-#         if not request or not request.user.is_authenticated or (
-#             not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-#         ):
-#             data.pop('status', None)
-#             data.pop('status_display', None)
-#         return data
 
 
 
@@ -634,6 +240,9 @@ class StatisticDataWriteSerializer(serializers.ModelSerializer):
             'year': {'required': True},
         }
 
+
+
+
 class LostItemRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostItemRequest
@@ -656,6 +265,43 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
 
         # Oddiy foydalanuvchiga ham status ko‘rinadi
         return rep
+    
+    def validate(self, attrs):
+        required_fields = [
+            'name', 'phone', 'email', 'address', 'passport', 'message'
+        ]
+
+        missing_fields = [
+            field for field in required_fields
+            if not attrs.get(field)
+        ]
+
+        if missing_fields:
+            raise serializers.ValidationError(
+                "E’tiborli bo‘ling, barcha kataklarni to‘ldiring"
+            )
+
+        return attrs
+    
+    
+    def validate_phone(self, value):
+        if value:
+            if len(value) != 13:
+                raise serializers.ValidationError(
+                    "Telefon raqamni namunadagiday kiriting.Masalan(+998901234567)"
+                )
+        return value
+
+    #PASSPORT VALIDATION
+    def validate_passport(self, value):
+        if value:
+            if len(value) != 9:
+                raise serializers.ValidationError(
+                    "Passport raqami aniq 9 ta belgidan iborat bo‘lishi kerak.(Masalan AA1234567)"
+                )
+        return value
+    
+    
 
     def create(self, validated_data):
         validated_data['status'] = 'pending'
@@ -675,45 +321,120 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
 
 
 
-# class LostItemRequestSerializer(serializers.ModelSerializer):
-#     recaptcha_token = serializers.CharField(write_only=True)
 
-#     class Meta:
-#         model = LostItemRequest
-#         fields = [
-#             'id',
-#             'name_uz', 'name_ru', 'name_en',
-#             'phone', 'email',
-#             'message_uz', 'message_ru', 'message_en',
-#             'created_at',
-#             'recaptcha_token'
-#         ]
-#         read_only_fields = ['created_at']
+class AnnouncementImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnnouncementImage
+        fields = ['id', 'image']
 
-#     def validate_recaptcha_token(self, value):
-#         """Google reCAPTCHA v3 tokenini tekshirish"""
-#         url = "https://www.google.com/recaptcha/api/siteverify"
-#         data = {
-#             'secret': settings.RECAPTCHA_SECRET_KEY,
-#             'response': value
-#         }
 
-#         try:
-#             r = requests.post(url, data=data, timeout=5)
-#             result = r.json()
-#         except Exception:
-#             raise serializers.ValidationError("reCAPTCHA serveriga ulanib bo‘lmadi.")
 
-#         # Tekshirish natijasi
-#         if not result.get('success'):
-#             raise serializers.ValidationError("reCAPTCHA tasdiqlanmadi.")
 
-#         score = result.get('score', 0)
-#         if score < getattr(settings, 'RECAPTCHA_MIN_SCORE', 0.5):
-#             raise serializers.ValidationError("So‘rov shubhali (score past).")
+class AnnouncementCreateSerializer(serializers.ModelSerializer):
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
 
-#         return value
+    class Meta:
+        model = Announcement
+        fields = ['id', 'title', 'description', 'content', 'published_at', 'images']
+        
 
-#     def create(self, validated_data):
-#         validated_data.pop('recaptcha_token', None)  # DB ga saqlanmasin
-#         return super().create(validated_data)
+    def create(self, validated_data):
+        images = validated_data.pop('images', [])
+        announcement = Announcement.objects.create(**validated_data)
+
+        for image in images:
+            AnnouncementImage.objects.create(
+                announcement=announcement,
+                image=image
+            )
+        return announcement
+
+
+
+class AnnouncementSerializer(serializers.ModelSerializer):
+    images = AnnouncementImageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Announcement
+        fields = ['id', 'title', 'description', 'content', 'published_at', 'images']
+
+
+
+class AnnouncementCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnnouncementComment
+        fields = [
+            'id',
+            'announcement',
+            'author',
+            'content',
+            'timestamp'
+        ]
+        read_only_fields = ['timestamp']
+
+
+
+class KorrupsiyaImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KorrupsiyaImage
+        fields = ['id', 'image']
+        
+        
+class KorrupsiyaCreateSerializer(serializers.ModelSerializer):
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = Korrupsiya
+        fields = ['id', 'title', 'description', 'images','FullContent', 'category', 'publishedAt']
+        
+
+    def create(self, validated_data):
+        images = validated_data.pop('images', [])
+        korrupsiya = Korrupsiya.objects.create(**validated_data)
+
+        for image in images:
+            KorrupsiyaImage.objects.create(
+                korrupsiya=korrupsiya,
+                image=image
+            )
+        return korrupsiya
+    
+    
+class KorrupsiyaSerializer(serializers.ModelSerializer):
+    images = KorrupsiyaImageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Korrupsiya
+        fields = ['id', 'title', 'description', 'fullContent', 'category', 'publishedAt', 'images']
+        
+class KorrupsiyaCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KorrupsiyaComment
+        fields = [
+            'id',
+            'korrupsiya',
+            'author',
+            'content',
+            'timestamp'
+        ]
+        read_only_fields = ['timestamp']
+
+
+
+
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SimpleUser
+        fields = ['id', 'first_name', 'last_name', 'phone', 'is_verified']
+
+class VerifyCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=6)

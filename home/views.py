@@ -6,26 +6,27 @@ from rest_framework.generics import ListAPIView
 from .models import (
     News, Comment, NewsImage,
     JobVacancy,JobVacancyRequest, StatisticData,
-    LostItemRequest,FoydalanuvchiStatistika
+    LostItemRequest,FoydalanuvchiStatistika,Announcement,AnnouncementComment,NewsLike,
+    Korrupsiya, KorrupsiyaImage, KorrupsiyaComment, KorrupsiyaLike,
+    SimpleUser, PhoneVerification
 )
 from .throttles import LostItemBurstRateThrottle
 from .serializers import (
     NewsCreateSerializer,NewsSerializer,
-    NewsCreateSerializerRu, NewsCreateSerializerUz, NewsCreateSerializerEn,
-    NewsSerializerUz, NewsSerializerRu, NewsSerializerEn,
-    LatestNewsSerializerRu, LatestNewsSerializerUz, LatestNewsSerializerEn,
-    MainNewsSerializerRu, MainNewsSerializerUz, MainNewsSerializerEn,
     CommentSerializer,
     NewsImageSerializer,
-    JobVacancySerializerUz, JobVacancySerializerRu, JobVacancySerializerEn,
     JobVacancyRequestSerializer, 
     StatisticDataSerializer, StatisticDataWriteSerializer,
-    LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer,JobVacancySerializer
+    LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer,JobVacancySerializer,
+    AnnouncementImageSerializer,AnnouncementCreateSerializer,
+    KorrupsiyaSerializer, KorrupsiyaImageSerializer, KorrupsiyaCreateSerializer,KorrupsiyaCommentSerializer,
+    AnnouncementSerializer,AnnouncementLike,AnnouncementCommentSerializer,
+    SimpleUserSerializer, VerifyCodeSerializer
 )
 from django.contrib.auth import authenticate
 from rest_framework.decorators import action
 from .permissions import (
-    IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport
+    IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport,IsVerifiedSimpleUser
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
@@ -42,9 +43,9 @@ from .pagination import StandardResultsSetPagination
 from collections import defaultdict
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
-
-
-
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from .utils.sms_utils import send_sms_via_eskiz
+from django.core.cache import cache
 class CurrentUserView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -81,100 +82,72 @@ class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return User.objects.filter(is_superuser=False)
 
-# --- News ---
 
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
-    permission_classes = [IsNewsEditorOrReadOnly]
+    serializer_class = NewsSerializer
 
-    def get_serializer_class(self):
-        return NewsSerializer
+    def get_queryset(self):
+        lang = self.kwargs.get('lang')
+        if lang:
+            return News.objects.filter(language=lang)
+        return News.objects.all()
 
-    # --- List endpoints ---
-    @extend_schema(responses=NewsSerializerUz(many=True))
-    @action(detail=False, url_path='uz', serializer_class=NewsSerializerUz)
-    def list_uz(self, request):
-        serializer = NewsSerializerUz(
-            self.get_queryset(),
-            many=True,
-            context={'request': request}  
-        )
-        return Response(serializer.data)
+    def perform_create(self, serializer):
+        lang = self.kwargs.get('lang', 'uz')
+        serializer.save(language=lang)
+        
+        
+        
 
-    @extend_schema(responses=NewsSerializerRu(many=True))
-    @action(detail=False, url_path='ru', serializer_class=NewsSerializerRu)
-    def list_ru(self, request):
-        serializer = NewsSerializerRu(
-            self.get_queryset(),
-            many=True,
-            context={'request': request} 
-        )
-        return Response(serializer.data)
+def get_client_ip(request):
+    """Foydalanuvchi IP manzilini olish"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
-    @extend_schema(responses=NewsSerializerEn(many=True))
-    @action(detail=False, url_path='en', serializer_class=NewsSerializerEn)
-    def list_en(self, request):
-        serializer = NewsSerializerEn(
-            self.get_queryset(),
-            many=True,
-            context={'request': request} 
-        )
-        return Response(serializer.data)
-
-    # --- Retrieve endpoints ---
-    @extend_schema(responses=NewsSerializerUz)
-    @action(detail=True, url_path='uz', serializer_class=NewsSerializerUz)
-    def retrieve_uz(self, request, pk=None):
-        obj = self.get_object()
-        serializer = NewsSerializerUz(obj, context={'request': request}) 
-        return Response(serializer.data)
-
-    @extend_schema(responses=NewsSerializerRu)
-    @action(detail=True, url_path='ru', serializer_class=NewsSerializerRu)
-    def retrieve_ru(self, request, pk=None):
-        obj = self.get_object()
-        serializer = NewsSerializerRu(obj, context={'request': request}) 
-        return Response(serializer.data)
-
-    @extend_schema(responses=NewsSerializerEn)
-    @action(detail=True, url_path='en', serializer_class=NewsSerializerEn)
-    def retrieve_en(self, request, pk=None):
-        obj = self.get_object()
-        serializer = NewsSerializerEn(obj, context={'request': request}) 
-        return Response(serializer.data)
-
-
-
-# --- News Like ---
 class NewsLikeView(APIView):
-    permission_classes = [permissions.AllowAny]  
+    permission_classes = [permissions.AllowAny]
 
-    # Like sonini olish
-    @method_decorator(cache_page(CACHE_TIMEOUT))
-    def get(self, request, pk):
-        news = get_object_or_404(News, pk=pk)
-        return Response({
-            "like_count": news.like_count
-        }, status=status.HTTP_200_OK)
-
-    # Like qo‘shish
     def post(self, request, pk):
         news = get_object_or_404(News, pk=pk)
+        
+        identifier = get_client_ip(request)
 
-        news.like_count += 1
-        news.save(update_fields=["like_count"])
+        like, created = NewsLike.objects.get_or_create(
+            news=news,
+            session_key=identifier  
+        )
+
+        if not created:
+            like.delete()
+            liked = False
+        else:
+            liked = True
+
+        news.like_count = news.likes.count()
+        news.save() 
 
         return Response({
-            "message": "Liked!",
+            "liked": liked,
             "like_count": news.like_count
         }, status=status.HTTP_200_OK)
+
 
 
 # --- Comments ---
 @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [permissions.AllowAny]
+    
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         news_id = self.request.query_params.get('news_id')
@@ -216,100 +189,24 @@ class NewsImageViewSet(viewsets.ModelViewSet):
 
 
 
-# --- Latest News ---
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class LatestNewsListViewUz(ListAPIView):
-    queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = LatestNewsSerializerUz
-    permission_classes = [permissions.AllowAny]
-
-
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class LatestNewsListViewRu(ListAPIView):
-    queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = LatestNewsSerializerRu
-    permission_classes = [permissions.AllowAny]
-
-
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class LatestNewsListViewEn(ListAPIView):
-    queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = LatestNewsSerializerEn
-    permission_classes = [permissions.AllowAny]
-
-
-# --- Main News ---
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class MainNewsListViewUz(ListAPIView):
-    queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = MainNewsSerializerUz
-    permission_classes = [permissions.AllowAny]
-
-
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class MainNewsListViewRu(ListAPIView):
-    queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = MainNewsSerializerRu
-    permission_classes = [permissions.AllowAny]
-
-
-@method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
-class MainNewsListViewEn(ListAPIView):
-    queryset = News.objects.all().order_by('-publishedAt')[:5]
-    serializer_class = MainNewsSerializerEn
-    permission_classes = [permissions.AllowAny]
 
 
 # --- Job Vacancies ---
 
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyViewSet(viewsets.ModelViewSet):
-    queryset = JobVacancy.objects.all().order_by('-id')
-    permission_classes = [IsHRUserOrReadOnly]
+    queryset = JobVacancy.objects.all()
+    serializer_class = JobVacancySerializer
 
-    def get_serializer_class(self):
-        return JobVacancySerializer
+    def get_queryset(self):
+        lang = self.kwargs.get('lang')
+        if lang:
+            return JobVacancy.objects.filter(language=lang)
+        return JobVacancy.objects.all()
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-    # --- List endpoints ---
-    @action(detail=False, url_path='uz', serializer_class=JobVacancySerializerUz)
-    def list_uz(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, url_path='ru', serializer_class=JobVacancySerializerRu)
-    def list_ru(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, url_path='en', serializer_class=JobVacancySerializerEn)
-    def list_en(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    # --- Retrieve endpoints ---
-    @action(detail=True, url_path='uz', serializer_class=JobVacancySerializerUz)
-    def retrieve_uz(self, request, pk=None):
-        obj = self.get_object()
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
-
-    @action(detail=True, url_path='ru', serializer_class=JobVacancySerializerRu)
-    def retrieve_ru(self, request, pk=None):
-        obj = self.get_object()
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
-
-    @action(detail=True, url_path='en', serializer_class=JobVacancySerializerEn)
-    def retrieve_en(self, request, pk=None):
-        obj = self.get_object()
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
+        lang = self.kwargs.get('lang', 'uz')
+        serializer.save(language=lang, created_by=self.request.user)
 
 
 # --- JobVacancyRequest ---
@@ -321,8 +218,12 @@ class JobVacancyRequestViewSet(viewsets.ModelViewSet):
         return JobVacancyRequestSerializer
 
     def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]   
+
         if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
             return [IsHRUserOrReadOnly()]
+
         return [permissions.AllowAny()]
 
     def get_queryset(self):
@@ -467,6 +368,7 @@ class Last6MonthsStatisticDataViewSet(viewsets.ReadOnlyModelViewSet):
 class LostItemRequestViewSet(viewsets.ModelViewSet):
     serializer_class = LostItemRequestSerializer
     throttle_classes = [LostItemBurstRateThrottle]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_queryset(self):
         user = self.request.user
@@ -475,8 +377,12 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
         return LostItemRequest.objects.none()
 
     def get_permissions(self):
-        if self.action in ['create', 'list']:
-            return [permissions.AllowAny()]
+        if self.action == 'create':
+            return [permissions.AllowAny()]   
+
+        if self.action == 'list':
+            return [permissions.AllowAny()]   
+
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
@@ -594,9 +500,6 @@ class TestPingView(APIView):
     
 
 class APILoginView(APIView):
-    """
-    POST: { "username": "...", "password": "..." }
-    """
     def post(self, request):
         data = request.data
         username = data.get("username")
@@ -610,3 +513,254 @@ class APILoginView(APIView):
                 "access": str(refresh.access_token)
             })
         return Response({"detail":"Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class AnnouncementViewSet(viewsets.ModelViewSet):
+    serializer_class = AnnouncementSerializer
+    permission_classes = [IsNewsEditorOrReadOnly]
+
+    def get_queryset(self):
+        lang = self.kwargs.get('lang', 'uz')
+        return Announcement.objects.filter(lang=lang)
+
+    def perform_create(self, serializer):
+        lang = self.kwargs.get('lang', 'uz')
+        serializer.save(lang=lang)
+
+
+    
+class AnnouncementCommentViewSet(viewsets.ModelViewSet):
+    serializer_class = AnnouncementCommentSerializer
+    
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsVerifiedSimpleUser()]
+        return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        announcement_id = self.request.query_params.get('announcement_id')
+        qs = AnnouncementComment.objects.all()
+
+        if announcement_id:
+            qs = qs.filter(announcement_id=announcement_id)
+
+        return qs
+    
+    
+class AnnouncementLikeToggleView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        announcement = get_object_or_404(Announcement, pk=pk)
+
+        # session yo‘q bo‘lsa yaratamiz
+        if not request.session.session_key:
+            request.session.create()
+
+        session_key = request.session.session_key
+
+        like, created = AnnouncementLike.objects.get_or_create(
+            announcement=announcement,
+            session_key=session_key
+        )
+
+        if not created:
+            # Like bor edi → o‘chiramiz
+            like.delete()
+            liked = False
+        else:
+            liked = True
+
+        return Response({
+            "liked": liked,
+            "like_count": AnnouncementLike.objects.filter(
+                announcement=announcement
+            ).count()
+        }, status=status.HTTP_200_OK)
+        
+        
+class AnnouncementLikeCountView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        announcement = get_object_or_404(Announcement, pk=pk)
+        return Response({
+            "like_count": announcement.likes.count()
+        })
+
+
+
+
+class KorrupsiyaViewSet(viewsets.ModelViewSet):
+    serializer_class = KorrupsiyaSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        lang = self.kwargs.get('lang', 'uz')
+        return Korrupsiya.objects.filter(language=lang)
+
+    def perform_create(self, serializer):
+        lang = self.kwargs.get('lang', 'uz')
+        serializer.save(language=lang)
+        
+        
+class KorrupsiyaCommentViewSet(viewsets.ModelViewSet):
+    serializer_class = KorrupsiyaCommentSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        korrupsiya_id = self.request.query_params.get('korrupsiya_id')
+        qs = KorrupsiyaComment.objects.all()
+
+        if korrupsiya_id:
+            qs = qs.filter(korrupsiya_id=korrupsiya_id)
+
+        return qs
+    
+class KorrupsiyaLikeToggleView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        korrupsiya = get_object_or_404(Korrupsiya, pk=pk)
+
+        # session yo‘q bo‘lsa yaratamiz
+        if not request.session.session_key:
+            request.session.create()
+
+        session_key = request.session.session_key
+
+        like, created = KorrupsiyaLike.objects.get_or_create(
+            korrupsiya=korrupsiya,
+            session_key=session_key
+        )
+
+        if not created:
+            # Like bor edi → o‘chiramiz
+            like.delete()
+            liked = False
+        else:
+            liked = True
+
+        return Response({
+            "liked": liked,
+            "like_count": KorrupsiyaLike.objects.filter(
+                korrupsiya=korrupsiya
+            ).count()
+        }, status=status.HTTP_200_OK)
+        
+class KorrupsiyaLikeCountView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        korrupsiya = get_object_or_404(Korrupsiya, pk=pk)
+        return Response({
+            "like_count": korrupsiya.likes.count()
+        })
+        
+        
+        
+        
+        
+        
+        
+class SimpleUserViewSet(viewsets.ModelViewSet):
+    queryset = SimpleUser.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == 'verify_code':
+            return VerifyCodeSerializer
+        return SimpleUserSerializer
+
+    # 1-QADAM: Ro'yxatdan o'tish
+    @action(detail=False, methods=['post'])
+    def register(self, request):
+        first_name = request.data.get("first_name")
+        last_name = request.data.get("last_name")
+        phone = request.data.get("phone")
+
+        if not (first_name and last_name and phone):
+            return Response(
+                {"error": "Ma'lumotlar to'liq emas"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 1. Telefon bazada bormi tekshirish
+        existing_user = SimpleUser.objects.filter(phone=phone).first()
+        if existing_user and existing_user.is_verified:
+            return Response(
+                {
+                    "message": "Siz allaqachon ro'yxatdan o'tgansiz",
+                    "user": SimpleUserSerializer(existing_user).data
+                },
+                status=status.HTTP_200_OK
+            )
+
+        # 2. AVVAL KODNI GENERATSIYA QILAMIZ
+        code = PhoneVerification.generate_code()
+
+        # 3. ENDI KODNI SMS ORQALI YUBORAMIZ
+        sms_text = f"uzmetro.uz saytiga ro'yhatdan o'tish uchun tasdiqlash kodi: {code}"
+        sms_response = send_sms_via_eskiz(phone, sms_text)
+
+        if not sms_response:
+            return Response(
+                {"error": "SMS yuborishda xatolik yuz berdi"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 4. KESHGA SAQLASH (10 daqiqa)
+        cache.set(
+            f"sms_verify_{code}",
+            {
+                "first_name": first_name,
+                "last_name": last_name,
+                "phone": phone
+            },
+            timeout=600
+        )
+
+        return Response(
+            {
+                "message": "SMS yuborildi. Kodni tasdiqlang.",
+                # "code_for_test": code 
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+    # 2-QADAM: Tasdiqlash
+    @action(detail=False, methods=['post'])
+    def verify_code(self, request):
+        serializer = VerifyCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        code = serializer.validated_data['code']
+        user_data = cache.get(f"sms_verify_{code}")
+
+        if not user_data:
+            return Response({"error": "Kod xato yoki muddati o'tgan"}, status=400)
+
+        # 1. Bazaga saqlash yoki yangilash
+        user, created = SimpleUser.objects.update_or_create(
+            phone=user_data['phone'],
+            defaults={
+                "first_name": user_data['first_name'],
+                "last_name": user_data['last_name'],
+                "is_verified": True
+            }
+        )
+
+        # 2. TOKEN GENERATSIYA QILISH
+        # Bu qism foydalanuvchini har safar qayta login qildirmaslik uchun kerak
+        refresh = RefreshToken.for_user(user)
+
+        # 3. Keshni o'chirish
+        cache.delete(f"sms_verify_{code}")
+
+        return Response({
+            "message": "Tabriklaymiz, ro'yxatdan o'tdingiz!",
+            "access": str(refresh.access_token),  # Frontend buni saqlab qo'yadi
+            "refresh": str(refresh),               # Tokenni yangilash uchun
+            "user": SimpleUserSerializer(user).data
+        }, status=status.HTTP_201_CREATED)
