@@ -63,6 +63,10 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'Metro sayt API hujjatlari',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_PATCH': True,
+    'COMPONENT_SPLIT_COMMAND': True,
+    'SECURITY': [{'jwtAuth': []}],
+    
 }
 
 AUTHENTICATION_BACKENDS = (
@@ -84,6 +88,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'home.middleware.foydalanuvchi_stat.FoydalanuvchiStatMiddleware',
+    'home.middleware.protect.ProtectAPIMiddleware',
 ]
 
 ROOT_URLCONF = 'metrosayt.urls'
@@ -234,6 +239,8 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,                   
     "BLACKLIST_AFTER_ROTATION": True,                 
     "UPDATE_LAST_LOGIN": True,
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }
 
 

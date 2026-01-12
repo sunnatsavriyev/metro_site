@@ -438,3 +438,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
 class VerifyCodeSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
+    
+    
+class LoginByPhoneSerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=20, help_text="Ro'yxatdan o'tgan telefon raqami")

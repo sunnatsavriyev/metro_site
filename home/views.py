@@ -8,7 +8,7 @@ from .models import (
     JobVacancy,JobVacancyRequest, StatisticData,
     LostItemRequest,FoydalanuvchiStatistika,Announcement,AnnouncementComment,NewsLike,
     Korrupsiya, KorrupsiyaImage, KorrupsiyaComment, KorrupsiyaLike,
-    SimpleUser, PhoneVerification
+    SimpleUser, PhoneVerification, CustomUser,
 )
 from .throttles import LostItemBurstRateThrottle
 from .serializers import (
@@ -21,7 +21,7 @@ from .serializers import (
     AnnouncementImageSerializer,AnnouncementCreateSerializer,
     KorrupsiyaSerializer, KorrupsiyaImageSerializer, KorrupsiyaCreateSerializer,KorrupsiyaCommentSerializer,
     AnnouncementSerializer,AnnouncementLike,AnnouncementCommentSerializer,
-    SimpleUserSerializer, VerifyCodeSerializer
+    SimpleUserSerializer, VerifyCodeSerializer,LoginByPhoneSerializer
 )
 from django.contrib.auth import authenticate
 from rest_framework.decorators import action
@@ -146,7 +146,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         if self.action == 'create':
-            return [permissions.AllowAny()]
+            return [IsVerifiedSimpleUser()]
         return [permissions.AllowAny()]
 
     def get_queryset(self):
@@ -741,8 +741,8 @@ class SimpleUserViewSet(viewsets.ModelViewSet):
         if not user_data:
             return Response({"error": "Kod xato yoki muddati o'tgan"}, status=400)
 
-        # 1. Bazaga saqlash yoki yangilash
-        user, created = SimpleUser.objects.update_or_create(
+        # 1. SimpleUser-ga ma'lumotni saqlaymiz (Statistika uchun)
+        simple_user, _ = SimpleUser.objects.update_or_create(
             phone=user_data['phone'],
             defaults={
                 "first_name": user_data['first_name'],
@@ -751,16 +751,78 @@ class SimpleUserViewSet(viewsets.ModelViewSet):
             }
         )
 
-        # 2. TOKEN GENERATSIYA QILISH
-        # Bu qism foydalanuvchini har safar qayta login qildirmaslik uchun kerak
-        refresh = RefreshToken.for_user(user)
+        main_user, created = CustomUser.objects.get_or_create(
+            username=user_data['phone'], # Telefon raqami username bo'ladi
+            defaults={
+                "first_name": user_data['first_name'],
+                "last_name": user_data['last_name'],
+                "role": 'simple',       # Agar CustomUser-da role maydoni bo'lsa
+                "is_verified": True      
+            }
+        )
 
-        # 3. Keshni o'chirish
+        # Agar foydalanuvchi yangi bo'lsa, unga default parol o'rnatamiz
+        if created:
+            main_user.set_password(user_data['phone']) 
+            main_user.save()
+
+        # 3. TOKENNI ASOSIY USER UCHUN GENERATSIYA QILAMIZ
+        refresh = RefreshToken.for_user(main_user)
+
+        # 4. Keshni o'chirish
         cache.delete(f"sms_verify_{code}")
 
         return Response({
             "message": "Tabriklaymiz, ro'yxatdan o'tdingiz!",
-            "access": str(refresh.access_token),  # Frontend buni saqlab qo'yadi
-            "refresh": str(refresh),               # Tokenni yangilash uchun
-            "user": SimpleUserSerializer(user).data
+            "access": str(refresh.access_token), 
+            "refresh": str(refresh),
+            "user": SimpleUserSerializer(simple_user).data 
         }, status=status.HTTP_201_CREATED)
+        
+        
+    @extend_schema(
+        request=LoginByPhoneSerializer,
+        responses={200: SimpleUserSerializer},
+        description="Telefon raqami orqali yangi Access Token olish"
+    )
+    @action(detail=False, methods=['post'])
+    def login_by_phone(self, request):
+        serializer = LoginByPhoneSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data.get("phone")
+
+        # 1. Avval SimpleUser jadvalida borligini tekshiramiz
+        simple_user = SimpleUser.objects.filter(phone=phone, is_verified=True).first()
+        
+        if not simple_user:
+            return Response({"error": "Foydalanuvchi topilmadi. Avval ro'yxatdan o'ting."}, status=404)
+
+        # 2. Agar SimpleUser'da bo'lsa-yu, CustomUser'da bo'lmasa - yaratamiz (Sync qilish)
+        user, created = CustomUser.objects.get_or_create(
+            username=phone,
+            defaults={
+                "first_name": simple_user.first_name,
+                "last_name": simple_user.last_name,
+                "role": 'simple',
+                "is_verified": True
+            }
+        )
+
+        # Yangi yaratilgan bo'lsa parol o'rnatamiz
+        if created:
+            user.set_password(phone)
+            user.save()
+
+        # 3. Endi bemalol token beramiz
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "message": "Xush kelibsiz!",
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": SimpleUserSerializer(simple_user).data
+        }, status=status.HTTP_200_OK)
+        
+        
+        
+    

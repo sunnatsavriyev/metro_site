@@ -11,9 +11,10 @@ class CustomUser(AbstractUser):
         ('hr', 'Kadrlar bo‘limi'),
         ('statistician', 'Statistik'),
         ('lost_item_support', 'Murojatlar bo‘limi'),
+        ('simple', 'Simple User'),
     )
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, blank=True, null=True)
-
+    is_verified = models.BooleanField(default=False)
     def __str__(self):
         return self.username
 
