@@ -1,14 +1,17 @@
 from rest_framework import serializers
 from .models import (
-    News, Comment, NewsImage, JobVacancy,JobVacancyRequest,
+    Department, Management, News, Comment, NewsImage, JobVacancy,JobVacancyRequest,NewsView,NewsLike,
     StatisticData, LostItemRequest, CustomUser,Announcement,AnnouncementComment,AnnouncementImage,AnnouncementLike,
-    Korrupsiya, KorrupsiyaImage, KorrupsiyaComment,SimpleUser, PhoneVerification
+    Korrupsiya, KorrupsiyaImage, KorrupsiyaComment,SimpleUser, PhoneVerification, KorrupsiyaLike, KorrupsiyaView, AnnouncementView,
+    MediaPhoto, MediaVideo, FoydalanuvchiStatistika,StationFront
 )
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import get_user_model
 from django.conf import settings   # settings uchun
 import requests 
+from home.utils.business_days import add_business_days
+from django.utils import timezone
 User = get_user_model()
 
 
@@ -115,17 +118,32 @@ class NewsCreateSerializer(serializers.ModelSerializer):
 
 class NewsSerializer(serializers.ModelSerializer):
     images = NewsImageSerializer(many=True, read_only=True)
+    view_count = serializers.SerializerMethodField()
+    liked = serializers.SerializerMethodField()
     
     class Meta:
         model = News
-        fields = ['id', 'language', 'title', 'description', 'fullContent', 'category', 'publishedAt', 'like_count', 'images']
+        fields = ['id', 'language', 'title', 'description', 'fullContent', 'category', 'publishedAt', 'like_count','liked','view_count', 'images']
         read_only_fields = ['language']
         
         
-    def get_like_count(self, obj):
-        return obj.likes.count()
+    def get_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
 
+        try:
+            simple_user = SimpleUser.objects.get(phone=request.user.username)
+        except SimpleUser.DoesNotExist:
+            return False
 
+        return NewsLike.objects.filter(
+            news=obj,
+            session_key=simple_user.phone
+        ).exists()
+
+    def get_view_count(self, obj):
+            return obj.views.count()
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -134,6 +152,10 @@ class CommentSerializer(serializers.ModelSerializer):
             'id', 'news', 'author',
             'content',  'timestamp'
         ]
+        extra_kwargs = {
+            'author': {'read_only': True} ,
+            'timestamp': {'read_only': True}
+        }
 
 
 
@@ -172,37 +194,78 @@ class JobVacancySerializer(serializers.ModelSerializer):
 
 # ----------------- Uzbek -----------------
 class JobVacancyRequestSerializer(serializers.ModelSerializer):
-    # ID orqali bog‘lash va GETda ID ko‘rsatish
     jobVacancy = serializers.PrimaryKeyRelatedField(
         queryset=JobVacancy.objects.all()
     )
-    status_display = serializers.SerializerMethodField()
 
     class Meta:
         model = JobVacancyRequest
         fields = [
             'id', 'jobVacancy', 'name', 'phone', 'email', 'file',
-            'status', 'status_display', 'created_at'
+            'status', 'created_at'
         ]
-        read_only_fields = ['created_at']
-
-    def get_status_display(self, obj):
-        mapping = {
-            'pending': "Ko'rilmoqda",
-            'answered': "Javob berilgan",
-            'rejected': "Rad etilgan",
-        }
-        return mapping.get(obj.status, obj.status)
+        read_only_fields = ['created_at', 'name', 'phone', 'status']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
-        if not request or not request.user.is_authenticated or (
-            not request.user.is_superuser and request.user.role not in ['HR', 'admin']
-        ):
+
+        if request and request.user.is_authenticated:
+            user = request.user
+
+            # Superuser va HR/ADMIN → hamma ma'lumotlar
+            if user.is_superuser or user.role in ['HR', 'admin']:
+                return data
+
+            # Oddiy foydalanuvchi → faqat o‘z murojaati uchun status ko‘rsin
+            try:
+                simple_user = SimpleUser.objects.get(phone=user.username)
+                phone_number = simple_user.phone
+            except SimpleUser.DoesNotExist:
+                phone_number = user.username
+
+            if instance.phone == phone_number:
+                return data
+
+            # Boshqa foydalanuvchi murojaati → statusni yashirish
             data.pop('status', None)
-            data.pop('status_display', None)
+            return data
+
+        # Auth bo‘lmagan foydalanuvchi → statusni yashirish
+        data.pop('status', None)
         return data
+
+    def validate(self, attrs):
+        """
+        Oddiy foydalanuvchi uchun tekshiradi:
+        - Shu jobVacancy uchun oldingi murojaat pending bo'lsa → xato beradi
+        - Boshqa jobVacancy uchun yuborish mumkin
+        """
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        if user and user.is_authenticated:
+            try:
+                simple_user = SimpleUser.objects.get(phone=user.username)
+                phone_number = simple_user.phone
+            except SimpleUser.DoesNotExist:
+                phone_number = user.username
+
+            # Shu jobVacancy uchun oldingi murojaatni tekshirish
+            job_vacancy = attrs.get('jobVacancy')
+            existing_request = JobVacancyRequest.objects.filter(
+                phone=phone_number,
+                jobVacancy=job_vacancy,
+                status='pending'
+            ).first()
+
+            if existing_request:
+                raise serializers.ValidationError(
+                    "Siz avval shu ishga murojaat yuborgansiz va u hali ko‘rib chiqilmoqda."
+                )
+
+        return super().validate(attrs)
+
 
 
 
@@ -244,13 +307,15 @@ class StatisticDataWriteSerializer(serializers.ModelSerializer):
 
 
 class LostItemRequestSerializer(serializers.ModelSerializer):
+    can_send_new_request = serializers.SerializerMethodField()
+    deadline = serializers.SerializerMethodField()
     class Meta:
         model = LostItemRequest
         fields = [
             'id', 'name', 'phone', 'email', 'address',
-            'passport', 'message', 'created_at', 'status'
+            'passport', 'message', 'created_at', 'status','can_send_new_request', 'deadline'
         ]
-        read_only_fields = ['created_at']  # status endi PUT/PATCH da ko'rinadi
+        read_only_fields = ['created_at', 'name', 'phone', 'can_send_new_request','deadline']  
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -267,30 +332,45 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
         return rep
     
     def validate(self, attrs):
-        required_fields = [
-            'name', 'phone', 'email', 'address', 'passport', 'message'
-        ]
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
 
-        missing_fields = [
-            field for field in required_fields
-            if not attrs.get(field)
-        ]
+        # Ish kunini tekshirish
+        if user and user.is_authenticated:
+            try:
+                simple_user = SimpleUser.objects.get(phone=user.username)
+                phone_number = simple_user.phone
+            except SimpleUser.DoesNotExist:
+                phone_number = user.username
 
-        if missing_fields:
-            raise serializers.ValidationError(
-                "E’tiborli bo‘ling, barcha kataklarni to‘ldiring"
-            )
+            last_request = LostItemRequest.objects.filter(
+                phone=phone_number
+            ).order_by('-created_at').first()
 
-        return attrs
+            if last_request:
+                # Agar status pending bo'lsa, deadline hisoblash
+                if last_request.status == 'pending':
+                    deadline = add_business_days(last_request.created_at.date(), 5)
+                    if timezone.now().date() < deadline:
+                        raise serializers.ValidationError(
+                            f"Sizning avvalgi murojaatingizga hali javob berilmadi. "
+                            f"Yangi murojaatni {deadline} dan keyin yuborishingiz mumkin."
+                        )
+
+        return super().validate(attrs)
     
     
-    def validate_phone(self, value):
-        if value:
-            if len(value) != 13:
-                raise serializers.ValidationError(
-                    "Telefon raqamni namunadagiday kiriting.Masalan(+998901234567)"
-                )
-        return value
+    def get_can_send_new_request(self, obj):
+        
+        deadline = add_business_days(obj.created_at.date(), 5)
+
+        if obj.status == 'answered' or timezone.now().date() >= deadline:
+            return True
+
+        return False
+    
+    def get_deadline(self, obj):
+        return add_business_days(obj.created_at.date(), 5)
 
     #PASSPORT VALIDATION
     def validate_passport(self, value):
@@ -304,8 +384,22 @@ class LostItemRequestSerializer(serializers.ModelSerializer):
     
 
     def create(self, validated_data):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        if user and user.is_authenticated:
+            try:
+                simple_user = SimpleUser.objects.get(phone=user.username)
+                validated_data['name'] = f"{simple_user.first_name} {simple_user.last_name}"
+                validated_data['phone'] = simple_user.phone
+            except SimpleUser.DoesNotExist:
+                # Agar SimpleUser topilmasa, username ni ishlatish
+                validated_data['name'] = user.get_full_name() or ""
+                validated_data['phone'] = user.username
+
         validated_data['status'] = 'pending'
         return super().create(validated_data)
+
 
     def update(self, instance, validated_data):
         request = self.context.get('request')
@@ -357,10 +451,32 @@ class AnnouncementCreateSerializer(serializers.ModelSerializer):
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     images = AnnouncementImageSerializer(many=True, read_only=True)
-
+    like_count = serializers.IntegerField(source='likes.count', read_only=True)
+    liked = serializers.SerializerMethodField()
+    views_count = serializers.SerializerMethodField()
     class Meta:
         model = Announcement
-        fields = ['id', 'title', 'description', 'content', 'published_at', 'images']
+        fields = ['id', 'title', 'description', 'content', 'published_at', 'images','like_count', 'liked', 'views_count']
+        
+        
+    def get_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+
+        try:
+            # Newsnikidek SimpleUser telefonini olamiz
+            simple_user = SimpleUser.objects.get(phone=request.user.username)
+        except SimpleUser.DoesNotExist:
+            return False
+
+        return AnnouncementLike.objects.filter(
+            announcement=obj, 
+            session_key=simple_user.phone
+        ).exists()
+        
+    def get_views_count(self, obj):
+        return obj.views.count()
 
 
 
@@ -374,7 +490,7 @@ class AnnouncementCommentSerializer(serializers.ModelSerializer):
             'content',
             'timestamp'
         ]
-        read_only_fields = ['timestamp']
+        read_only_fields = ['timestamp','author']
 
 
 
@@ -410,10 +526,31 @@ class KorrupsiyaCreateSerializer(serializers.ModelSerializer):
     
 class KorrupsiyaSerializer(serializers.ModelSerializer):
     images = KorrupsiyaImageSerializer(many=True, read_only=True)
-
+    liked = serializers.SerializerMethodField()
+    views_count = serializers.SerializerMethodField()
     class Meta:
         model = Korrupsiya
-        fields = ['id', 'title', 'description', 'fullContent', 'category', 'publishedAt', 'images']
+        fields = ['id', 'title', 'description', 'fullContent', 'category', 'publishedAt', 'images','like_count', 'views_count', 'liked']
+        
+        
+    def get_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        try:
+            # SimpleUser ekanligini telefon raqami orqali tekshiramiz
+            simple_user = SimpleUser.objects.get(phone=request.user.username)
+            return KorrupsiyaLike.objects.filter(
+                korrupsiya=obj, 
+                session_key=simple_user.phone
+            ).exists()
+        except SimpleUser.DoesNotExist:
+            return False
+        
+        
+    def get_views_count(self, obj):
+        return obj.views.count()
+        
         
 class KorrupsiyaCommentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -425,7 +562,10 @@ class KorrupsiyaCommentSerializer(serializers.ModelSerializer):
             'content',
             'timestamp'
         ]
-        read_only_fields = ['timestamp']
+        read_only_fields = ['timestamp','author']
+        
+        
+    
 
 
 
@@ -436,9 +576,98 @@ class SimpleUserSerializer(serializers.ModelSerializer):
         model = SimpleUser
         fields = ['id', 'first_name', 'last_name', 'phone', 'is_verified']
 
+class LoginByPhoneSerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=20)
+
 class VerifyCodeSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
     
+class SimplePhoneLoginSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+
+
+
+
+
+
+class MediaPhotoSerializer(serializers.ModelSerializer):
+    src = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MediaPhoto
+        fields = ["id", "group_id", "language", "src", "title", "category"]
+
+    def get_src(self, obj):
+        request = self.context.get("request")
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None
+
+class MediaVideoSerializer(serializers.ModelSerializer):
+    url = serializers.CharField(source="video_url")
+    views = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MediaVideo
+        fields = ["id", "group_id", "language", "url", "thumbnail", "title", "duration", "views", "category"]
+
+    def get_views(self, obj):
+        stat = FoydalanuvchiStatistika.objects.first()
+        return stat.jami_kirishlar if stat else 0
     
-class LoginByPhoneSerializer(serializers.Serializer):
-    phone = serializers.CharField(max_length=20, help_text="Ro'yxatdan o'tgan telefon raqami")
+    
+         
+class StationFrontSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StationFront
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        
+        # Rasmlar to'liq URL bo'lishi uchun
+        images = []
+        if instance.image1:
+            images.append(request.build_absolute_uri(instance.image1.url))
+        if instance.image2:
+            images.append(request.build_absolute_uri(instance.image2.url))
+
+        # Video muqovasi URL sifatida
+        video_thumbnail_url = (
+            request.build_absolute_uri(instance.video_thumbnail.url)
+            if instance.video_thumbnail else None
+        )
+
+        # Siz xohlagan formatga o'tkazish
+        return {
+            "name": instance.name,
+            "images": images,
+            "videos": [
+                {
+                    "title": instance.video_title,
+                    "url": instance.video_url,
+                    "thumbnail": video_thumbnail_url,
+                }
+            ]
+        }
+        
+        
+        
+        
+class ManagementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Management
+        fields = [
+            'id', 'group_id', 'language', 'firstName', 'middleName', 
+            'lastName', 'position', 'department', 'phone', 
+            'email', 'hours', 'image', 'biography'
+        ]
+        
+        
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = [
+            'id', 'group_id', 'language', 'title', 'head', 
+            'schedule', 'reception', 'phone', 'email', 'image', 'order'
+        ]

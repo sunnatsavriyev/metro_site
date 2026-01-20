@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'drf_spectacular',
     'corsheaders',
+    'django_filters',
     
 ]
 
@@ -50,6 +51,11 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'lostitem_burst': '3/second',  
     },
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ]
 }
 
 
@@ -88,7 +94,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'home.middleware.foydalanuvchi_stat.FoydalanuvchiStatMiddleware',
-    'home.middleware.protect.ProtectAPIMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'metrosayt.urls'
@@ -182,6 +188,13 @@ JAZZMIN_SETTINGS = {
 # ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'metro-site.onrender.com', 'http://localhost:3000']
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ['*']
+
+# CORS_ALLOW_ALL_ORIGINS = False
+# CORS_ALLOWED_ORIGINS = [
+#     "https://uzmetro.uz",
+
+    
+# ]
 
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,

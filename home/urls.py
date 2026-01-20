@@ -1,7 +1,10 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import DefaultRouter, SimpleRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
+    DepartmentListAPIView,
+    ManagementListAPIView,
+    MediaVideosAPIView,
     NewsViewSet,
     CommentViewSet,NewsImageViewSet,
     NewsLikeView, JobVacancyViewSet,
@@ -11,11 +14,12 @@ from .views import (
     StatisticDataListView, CurrentUserView,
     UserListCreateAPIView, UserRetrieveUpdateDestroyAPIView,
     Last6MonthsStatisticDataViewSet, TokenInfoView, TestPingView, APILoginView,
-    AnnouncementViewSet,AnnouncementCommentViewSet,AnnouncementLikeToggleView,AnnouncementLikeCountView,
-    KorrupsiyaViewSet, KorrupsiyaCommentViewSet, KorrupsiyaLikeToggleView, KorrupsiyaLikeCountView,SimpleUserViewSet
+    AnnouncementViewSet,AnnouncementCommentViewSet,AnnouncementLikeView,
+    KorrupsiyaViewSet, KorrupsiyaCommentViewSet, KorrupsiyaLikeView,SimpleUserViewSet, FrontendImagesAPIView,
+    MediaPhotosAPIView,StationFrontListAPIView
 )
 
-router = DefaultRouter()
+router = SimpleRouter()
 # Asosiy news endpoint
 # router.register(r'news', NewsViewSet, basename='news')
 router.register(r'news-images', NewsImageViewSet, basename='news-images')
@@ -95,7 +99,7 @@ urlpatterns = [
 
 
     # Extra
-    path('api/me/', CurrentUserView.as_view(), name='current-user'),
+    path('me/', CurrentUserView.as_view(), name='current-user'),
     path('sayt_foydalanuvchilari/', FoydalanuvchiStatistikaView.as_view(), name='foydalanuvchi-statistika'),
     path('token-info/', TokenInfoView.as_view(), name='token-info'),
     path("test/", TestPingView.as_view(), name="test-ping"),
@@ -108,25 +112,22 @@ urlpatterns = [
     
     path(
         'announcements/<int:pk>/like/',
-        AnnouncementLikeToggleView.as_view(),
-        name='announcement-like-toggle'
-    ),
-    path(
-        'announcements/<int:pk>/like-count/',
-        AnnouncementLikeCountView.as_view(),
-        name='announcement-like-count'
+        AnnouncementLikeView.as_view(),
+        name='announcement-like'
     ),
     
     path('korrupsiya/<str:lang>/', korrupsiya_list),
     path('korrupsiya/<str:lang>/<int:pk>/', korrupsiya_detail),
     path(
         'korrupsiya/<int:pk>/like/',
-        KorrupsiyaLikeToggleView.as_view(),
-        name='korrupsiya-like-toggle'
+        KorrupsiyaLikeView.as_view(),
+        name='korrupsiya-like'
     ),
-    path(
-        'korrupsiya/<int:pk>/like-count/',
-        KorrupsiyaLikeCountView.as_view(),
-        name='korrupsiya-like-count'
-    ),
+    path('frontend-images/', FrontendImagesAPIView.as_view()),
+    path('media-photos/<str:lang>/', MediaPhotosAPIView.as_view()),
+    path('media-videos/<str:lang>/', MediaVideosAPIView.as_view()),
+    path("station-fronts/", StationFrontListAPIView.as_view()),
+    path('managements/<str:lang>/', ManagementListAPIView.as_view(), name='management-list'),
+    path('departments/<str:lang>/', DepartmentListAPIView.as_view(), name='department-list'),
 ]
+

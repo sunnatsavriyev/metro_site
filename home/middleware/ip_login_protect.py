@@ -5,6 +5,5 @@ class IPLoginProtectionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Hammasi ruxsat berilgan, hech qanday IP cheklovi yo‘q
         return self.get_response(request)
 

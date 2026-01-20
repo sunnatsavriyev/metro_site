@@ -79,6 +79,22 @@ class NewsLike(models.Model):
         verbose_name = "News Like"
         verbose_name_plural = "News Likes"
 
+
+class NewsView(models.Model):
+    news = models.ForeignKey(
+        News,
+        related_name='views',
+        on_delete=models.CASCADE
+    )
+    session_key = models.CharField(max_length=40, db_index=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('news', 'session_key')
+        verbose_name = "News View"
+        verbose_name_plural = "News Views"
+
+
 # -------------------- Comment --------------------
 class Comment(models.Model):
     news = models.ForeignKey(
@@ -144,7 +160,7 @@ class JobVacancyRequest(models.Model):
     created_at = models.DateTimeField("Qo‘shilgan vaqt", auto_now_add=True)
 
     def __str__(self):
-        return f"{self.name_uz or self.name_ru or self.name_en} - {self.jobVacancy}"
+        return f"{self.name } - {self.jobVacancy}"
 
 
 
@@ -333,6 +349,8 @@ class Announcement(models.Model):
     description = models.TextField()
     content = models.TextField()
     published_at = models.DateTimeField(default=timezone.now)
+    views_count = models.PositiveIntegerField(default=0)
+    like_count = models.PositiveIntegerField(default=0)
 
 
 
@@ -360,15 +378,14 @@ class AnnouncementComment(models.Model):
     )
 
 
-
 class AnnouncementLike(models.Model):
     announcement = models.ForeignKey(
-        Announcement,
-        related_name='likes',
+        Announcement, 
+        related_name='likes', 
         on_delete=models.CASCADE
     )
     session_key = models.CharField(
-        max_length=40,
+        max_length=40, 
         db_index=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -378,6 +395,19 @@ class AnnouncementLike(models.Model):
         verbose_name = "E’lon like"
         verbose_name_plural = "E’lon like-lar"
 
+
+
+class AnnouncementView(models.Model):
+    announcement = models.ForeignKey(
+        Announcement,
+        related_name='views',
+        on_delete=models.CASCADE
+    )
+    session_key = models.CharField(max_length=40, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('announcement', 'session_key')
 
 
 class Korrupsiya(models.Model):
@@ -391,6 +421,7 @@ class Korrupsiya(models.Model):
     
     publishedAt = models.DateTimeField(default=timezone.now)
     like_count = models.PositiveIntegerField(default=0)
+    views_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"[{self.language}] {self.title}"
@@ -437,7 +468,17 @@ class KorrupsiyaComment(models.Model):
         default=timezone.now
     )
     
-    
+class KorrupsiyaView(models.Model):
+    korrupsiya = models.ForeignKey(
+        Korrupsiya,
+        related_name='views',
+        on_delete=models.CASCADE
+    )
+    session_key = models.CharField(max_length=40)
+
+    class Meta:
+        unique_together = ('korrupsiya', 'session_key')
+
     
     
 
@@ -466,3 +507,149 @@ class PhoneVerification(models.Model):
     @staticmethod
     def generate_code():
         return f"{random.randint(100000, 999999)}"
+    
+
+
+
+
+
+class MediaPhoto(models.Model):
+    LANG_CHOICES = (('uz', 'Uz'), ('ru', 'Ru'), ('en', 'En'))
+    language = models.CharField(max_length=2, choices=LANG_CHOICES, default='uz')
+    group_id = models.PositiveIntegerField(verbose_name="Guruh ID (Bir xil rasm uchun)")
+    
+    image = models.ImageField(upload_to="mediateka/photos/")
+    title = models.CharField(max_length=255, verbose_name="Sarlavha")
+    category = models.CharField(max_length=100, verbose_name="Kategoriya")
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "group_id"]
+        verbose_name = "Media Foto"
+        verbose_name_plural = "Media Fotolar"
+
+    def __str__(self):
+        return f"[{self.language}] {self.title}"
+
+
+class MediaVideo(models.Model):
+    LANG_CHOICES = (('uz', 'Uz'), ('ru', 'Ru'), ('en', 'En'))
+    language = models.CharField(max_length=2, choices=LANG_CHOICES, default='uz')
+    group_id = models.PositiveIntegerField(verbose_name="Guruh ID (Bir xil video uchun)")
+    
+    video_url = models.URLField(help_text="YouTube embed URL")
+    thumbnail = models.ImageField(upload_to="mediateka/videos/thumbnails/")
+    title = models.CharField(max_length=255, verbose_name="Sarlavha")
+    duration = models.CharField(max_length=20, help_text="Masalan: 15:42")
+    views = models.CharField(max_length=20, default="0")
+    category = models.CharField(max_length=100, verbose_name="Kategoriya")
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "group_id"]
+        verbose_name = "Media Video"
+        verbose_name_plural = "Media Videolar"
+
+    def __str__(self):
+        return f"[{self.language}] {self.title}"
+   
+    
+
+
+# models.py
+class FrontendImage(models.Model):
+    section = models.CharField(
+        max_length=100,
+        help_text="Bo‘lim nomi (masalan: main_page, navbar, footer)"
+    )
+    image = models.ImageField(upload_to="frontend_images/")
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["section", "order"]
+
+    def __str__(self):
+        return f"{self.section}"
+  
+   
+class StationFront(models.Model):
+    name = models.CharField(max_length=255, unique=True, verbose_name="Bekat nomi")
+    
+    # Rasmlar (Admin paneldan fayl sifatida yuklanadi)
+    image1 = models.ImageField(upload_to='stations/', verbose_name="Rasm 1")
+    image2 = models.ImageField(upload_to='stations/', verbose_name="Rasm 2", blank=True, null=True)
+    
+    # Video ma'lumotlari
+    video_title = models.CharField(max_length=255, verbose_name="Video sarlavhasi")
+    video_url = models.URLField(verbose_name="Video Linki (Embed)")
+    video_thumbnail = models.ImageField(  # <-- URLField o‘rniga ImageField
+        upload_to='stations/video_thumbnails/', 
+        verbose_name="Video muqovasi (Fayl)",
+        blank=True,
+        null=True
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Bekat ma'lumoti"
+        verbose_name_plural = "Bekat ma'lumotlari"
+        
+        
+        
+        
+class Management(models.Model):
+    LANG_CHOICES = (('uz', 'Uz'), ('ru', 'Ru'), ('en', 'En'))
+    language = models.CharField(max_length=2, choices=LANG_CHOICES, default='uz', verbose_name="Til")
+    
+    # Har xil tillardagi bir xil odamni bog'lash uchun (masalan, 3 ta tilda ham bir xil raqam qo'yiladi)
+    group_id = models.PositiveIntegerField(verbose_name="Guruh ID (Bir xil rahbarlar uchun bir xil raqam)")
+    
+    firstName = models.CharField(max_length=255, verbose_name="Ism")
+    middleName = models.CharField(max_length=255, verbose_name="Sharif")
+    lastName = models.CharField(max_length=255, verbose_name="Familiya")
+    position = models.CharField(max_length=255, verbose_name="Lavozim")
+    
+    department = models.CharField(max_length=255, verbose_name="Bo'lim")
+    phone = models.CharField(max_length=100, verbose_name="Telefon")
+    email = models.CharField(max_length=255, verbose_name="Email")
+    hours = models.CharField(max_length=255, verbose_name="Qabul vaqti")
+    biography = models.TextField(verbose_name="Biografiya")
+    
+    image = models.ImageField(upload_to='management/', verbose_name="Rasm")
+    order = models.IntegerField(default=0, verbose_name="Tartib raqami")
+
+    class Meta:
+        ordering = ['order', 'group_id']
+        verbose_name = "Rahbar"
+        verbose_name_plural = "Rahbarlar"
+
+    def __str__(self):
+        return f"[{self.language}] {self.firstName} {self.lastName}"
+    
+    
+class Department(models.Model):
+    LANG_CHOICES = (('uz', 'Uz'), ('ru', 'Ru'), ('en', 'En'))
+    language = models.CharField(max_length=2, choices=LANG_CHOICES, default='uz', verbose_name="Til")
+    
+    # Bir xil bo'limlarni tillar kesimida bog'lash uchun
+    group_id = models.PositiveIntegerField(verbose_name="Guruh ID")
+    
+    title = models.CharField(max_length=255, verbose_name="Bo'lim nomi")
+    head = models.CharField(max_length=255, verbose_name="Rahbar")
+    schedule = models.CharField(max_length=255, verbose_name="Ish tartibi")
+    reception = models.CharField(max_length=255, verbose_name="Qabul vaqti")
+    
+    phone = models.CharField(max_length=100, verbose_name="Telefon")
+    email = models.EmailField(verbose_name="Email")
+    image = models.ImageField(upload_to='departments/', verbose_name="Rasm")
+    order = models.IntegerField(default=0, verbose_name="Tartib raqami")
+
+    class Meta:
+        ordering = ['order', 'group_id']
+        verbose_name = "Bo'lim"
+        verbose_name_plural = "Bo'limlar"
+
+    def __str__(self):
+        return f"[{self.language}] {self.title}"

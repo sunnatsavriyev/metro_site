@@ -4,33 +4,36 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework.generics import ListAPIView
 from .models import (
-    News, Comment, NewsImage,
+    Department, FrontendImage, Management, News, Comment, NewsImage,
     JobVacancy,JobVacancyRequest, StatisticData,
     LostItemRequest,FoydalanuvchiStatistika,Announcement,AnnouncementComment,NewsLike,
     Korrupsiya, KorrupsiyaImage, KorrupsiyaComment, KorrupsiyaLike,
-    SimpleUser, PhoneVerification, CustomUser,
+    SimpleUser, PhoneVerification, CustomUser,NewsView,KorrupsiyaView, AnnouncementView,StationFront,
+    MediaPhoto, MediaVideo
 )
 from .throttles import LostItemBurstRateThrottle
 from .serializers import (
-    NewsCreateSerializer,NewsSerializer,
+    DepartmentSerializer, ManagementSerializer, NewsCreateSerializer,NewsSerializer,
     CommentSerializer,
     NewsImageSerializer,
-    JobVacancyRequestSerializer, 
+    JobVacancyRequestSerializer, StationFrontSerializer, 
     StatisticDataSerializer, StatisticDataWriteSerializer,
     LostItemRequestSerializer, CustomUserSerializer,UserCreateSerializer, UserUpdateSerializer,JobVacancySerializer,
     AnnouncementImageSerializer,AnnouncementCreateSerializer,
     KorrupsiyaSerializer, KorrupsiyaImageSerializer, KorrupsiyaCreateSerializer,KorrupsiyaCommentSerializer,
     AnnouncementSerializer,AnnouncementLike,AnnouncementCommentSerializer,
-    SimpleUserSerializer, VerifyCodeSerializer,LoginByPhoneSerializer
+    SimpleUserSerializer, VerifyCodeSerializer,LoginByPhoneSerializer,SimplePhoneLoginSerializer,
+    MediaPhotoSerializer, MediaVideoSerializer
 )
+import os
+from django.db.models import F
 from django.contrib.auth import authenticate
 from rest_framework.decorators import action
 from .permissions import (
     IsNewsEditorOrReadOnly, IsHRUserOrReadOnly, IsStatisticianOrReadOnly, IsLostItemSupport,IsVerifiedSimpleUser
 )
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -46,6 +49,8 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .utils.sms_utils import send_sms_via_eskiz
 from django.core.cache import cache
+from django_filters.rest_framework import DjangoFilterBackend
+import re
 class CurrentUserView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -83,9 +88,43 @@ class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
         return User.objects.filter(is_superuser=False)
 
 
+def get_client_ip(request):
+    """Foydalanuvchi IP manzilini olish"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
     serializer_class = NewsSerializer
+    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsNewsEditorOrReadOnly]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+
+    search_fields = [
+        "title",
+        "description",
+        "fullContent",
+    ]
+    filterset_fields = {    
+        "category": ["exact"],     
+        "publishedAt": ["gte", "lte"],  
+    }
+    ordering_fields = [
+        "publishedAt",
+        "like_count",
+        "title",
+    ]
+    ordering = ["-publishedAt"]
+    
 
     def get_queryset(self):
         lang = self.kwargs.get('lang')
@@ -98,43 +137,57 @@ class NewsViewSet(viewsets.ModelViewSet):
         serializer.save(language=lang)
         
         
+    def retrieve(self, request, *args, **kwargs):
+        """Foydalanuvchi yangilikni ko‘rsa view qo‘shish"""
+        instance = self.get_object()
+        identifier = get_client_ip(request)  
+
+        NewsView.objects.get_or_create(news=instance, session_key=identifier)
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+        
+        
         
 
-def get_client_ip(request):
-    """Foydalanuvchi IP manzilini olish"""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+
 
 class NewsLikeView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsVerifiedSimpleUser]
+    
 
     def post(self, request, pk):
         news = get_object_or_404(News, pk=pk)
-        
-        identifier = get_client_ip(request)
+
+        try:
+            simple_user = SimpleUser.objects.get(phone=request.user.username)
+        except SimpleUser.DoesNotExist:
+            return Response(
+                {"error": "Faqat SimpleUser like bosishi mumkin"},
+                status=403
+            )
+
+        session_key = simple_user.phone
 
         like, created = NewsLike.objects.get_or_create(
             news=news,
-            session_key=identifier  
+            session_key=session_key
         )
 
-        if not created:
+        if created:
+            liked = True
+        else:
             like.delete()
             liked = False
-        else:
-            liked = True
 
         news.like_count = news.likes.count()
-        news.save() 
+        news.save(update_fields=['like_count'])
 
         return Response({
             "liked": liked,
             "like_count": news.like_count
-        }, status=status.HTTP_200_OK)
+        }, status=200)
+
 
 
 
@@ -155,6 +208,22 @@ class CommentViewSet(viewsets.ModelViewSet):
         if news_id:
             qs = qs.filter(news_id=news_id)
         return qs
+    
+    def retrieve(self, request, *args, **kwargs):
+        news_id = kwargs.get('pk') 
+        
+        comments = Comment.objects.filter(news_id=news_id).order_by('-timestamp')
+        
+        serializer = self.get_serializer(comments, many=True)
+        return Response(serializer.data)
+    
+    def perform_create(self, serializer):
+        try:
+            simple_user = SimpleUser.objects.get(phone=self.request.user.username)
+            full_name = f"{simple_user.first_name} {simple_user.last_name}"
+            serializer.save(author=full_name)
+        except SimpleUser.DoesNotExist:
+            serializer.save(author=self.request.user.username)
 
 
 
@@ -197,6 +266,7 @@ class NewsImageViewSet(viewsets.ModelViewSet):
 class JobVacancyViewSet(viewsets.ModelViewSet):
     queryset = JobVacancy.objects.all()
     serializer_class = JobVacancySerializer
+    permission_classes = [IsHRUserOrReadOnly]
 
     def get_queryset(self):
         lang = self.kwargs.get('lang')
@@ -212,29 +282,40 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
 # --- JobVacancyRequest ---
 @method_decorator(cache_page(CACHE_TIMEOUT), name='dispatch')
 class JobVacancyRequestViewSet(viewsets.ModelViewSet):
-    queryset = JobVacancyRequest.objects.all()
-
-    def get_serializer_class(self):
-        return JobVacancyRequestSerializer
+    serializer_class = JobVacancyRequestSerializer
 
     def get_permissions(self):
         if self.action == 'create':
-            return [permissions.AllowAny()]   
-
+            return [IsVerifiedSimpleUser()]   
         if self.action in ['list', 'retrieve', 'partial_update', 'update', 'destroy']:
             return [IsHRUserOrReadOnly()]
-
         return [permissions.AllowAny()]
 
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
+        user = self.request.user
+        if not user.is_authenticated:
             return JobVacancyRequest.objects.none()
-        if self.request.user.is_superuser or self.request.user.role in ['HR', 'admin']:
-            return JobVacancyRequest.objects.all().order_by('-created_at')
-        return JobVacancyRequest.objects.none()
+
+        # Hamma authenticated foydalanuvchilar uchun barcha murojaatlar
+        return JobVacancyRequest.objects.all().order_by('-created_at')
+
 
     def perform_create(self, serializer):
-        serializer.save(status='pending')
+        
+        user = self.request.user
+        try:
+            simple_user = SimpleUser.objects.get(phone=user.username)
+            full_name = f"{simple_user.first_name} {simple_user.last_name}"
+            phone_number = simple_user.phone
+        except SimpleUser.DoesNotExist:
+            full_name = user.get_full_name() or user.username
+            phone_number = user.username
+
+        serializer.save(
+            name=full_name,
+            phone=phone_number,
+            status='pending'
+        )
 
 
 # --- StatisticData ---
@@ -370,24 +451,38 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
     throttle_classes = [LostItemBurstRateThrottle]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'lost_item_support'):
-            return LostItemRequest.objects.all().order_by('-created_at')
-        return LostItemRequest.objects.none()
 
     def get_permissions(self):
         if self.action == 'create':
-            return [permissions.AllowAny()]   
+            return [IsVerifiedSimpleUser()]   
 
         if self.action == 'list':
             return [permissions.AllowAny()]   
 
         return [permissions.IsAuthenticated()]
 
-    def perform_create(self, serializer):
-        serializer.save(status='pending')
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            # Superuser yoki Lost Item Support → hamma murojaatlar
+            if user.is_superuser or getattr(user, 'role', '') == 'lost_item_support':
+                return LostItemRequest.objects.all().order_by('-created_at')
 
+            # Oddiy foydalanuvchi → faqat o‘z eng oxirgi murojaati
+            try:
+                simple_user = SimpleUser.objects.get(phone=user.username)
+                phone_number = simple_user.phone
+            except SimpleUser.DoesNotExist:
+                phone_number = user.username
+
+            last_request = LostItemRequest.objects.filter(phone=phone_number).order_by('-id').first()
+
+            if last_request:
+                return LostItemRequest.objects.filter(id=last_request.id)
+            return LostItemRequest.objects.none()
+    
+    
+    
     def perform_update(self, serializer):
         user = self.request.user
         if not (user.is_superuser or getattr(user, 'role', '') == 'lost_item_support'):
@@ -396,7 +491,10 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
 
     @method_decorator(cache_page(CACHE_TIMEOUT), name='list')
     def list(self, request, *args, **kwargs):
-        user = request.user
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+
+        # Stats → har doim barcha murojaatlar bo‘yicha
         total = LostItemRequest.objects.count()
         answered = LostItemRequest.objects.filter(status='answered').count()
         unanswered = total - answered
@@ -409,16 +507,12 @@ class LostItemRequestViewSet(viewsets.ModelViewSet):
             "unanswered_requests": unanswered
         }
 
-        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'lost_item_support'):
-            queryset = self.filter_queryset(self.get_queryset())
-            serializer = self.get_serializer(queryset, many=True)
-            return Response({
-                "stats": stats,
-                "requests": serializer.data
-            })
+        return Response({
+            "stats": stats,
+            "requests": serializer.data  
+        })
 
-        return Response({"stats": stats})
-  
+    
 
 
 
@@ -518,6 +612,31 @@ class APILoginView(APIView):
 class AnnouncementViewSet(viewsets.ModelViewSet):
     serializer_class = AnnouncementSerializer
     permission_classes = [IsNewsEditorOrReadOnly]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+
+    search_fields = [
+        "title",
+        "description",
+        "content",
+    ]
+
+    filterset_fields = {
+        "lang": ["exact"],                 
+        "published_at": ["gte", "lte"],    
+    }
+
+    ordering_fields = [
+        "published_at",
+        "title",
+    ]
+
+    ordering = ["-published_at"]
+    
 
     def get_queryset(self):
         lang = self.kwargs.get('lang', 'uz')
@@ -526,6 +645,20 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         lang = self.kwargs.get('lang', 'uz')
         serializer.save(lang=lang)
+        
+        
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        identifier = get_client_ip(request)
+
+        AnnouncementView.objects.get_or_create(
+            announcement=instance,
+            session_key=identifier
+        )
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
 
 
     
@@ -547,54 +680,91 @@ class AnnouncementCommentViewSet(viewsets.ModelViewSet):
 
         return qs
     
+    def perform_create(self, serializer):
+        try:
+            simple_user = SimpleUser.objects.get(phone=self.request.user.username)
+            full_name = f"{simple_user.first_name} {simple_user.last_name}"
+            serializer.save(author=full_name)
+        except SimpleUser.DoesNotExist:
+            serializer.save(author="Noma'lum foydalanuvchi")
+
+    def retrieve(self, request, *args, **kwargs):
+        ann_id = kwargs.get('pk') 
+        
+        comments = AnnouncementComment.objects.filter(announcement_id=ann_id).order_by('-timestamp')
+        serializer = self.get_serializer(comments, many=True)
+        return Response(serializer.data)
     
-class AnnouncementLikeToggleView(APIView):
-    permission_classes = [permissions.AllowAny]
+class AnnouncementLikeView(APIView):
+    permission_classes = [IsVerifiedSimpleUser]
 
     def post(self, request, pk):
+        # 1. Announcementni topamiz
         announcement = get_object_or_404(Announcement, pk=pk)
 
-        # session yo‘q bo‘lsa yaratamiz
-        if not request.session.session_key:
-            request.session.create()
+        # 2. SimpleUser-ni tekshiramiz
+        try:
+            simple_user = SimpleUser.objects.get(phone=request.user.username)
+        except SimpleUser.DoesNotExist:
+            return Response(
+                {"error": "Faqat SimpleUser like bosishi mumkin"},
+                status=403
+            )
 
-        session_key = request.session.session_key
+        session_key = simple_user.phone
 
+        # 3. Like-ni Toggle qilish (get_or_create)
         like, created = AnnouncementLike.objects.get_or_create(
             announcement=announcement,
             session_key=session_key
         )
 
-        if not created:
-            # Like bor edi → o‘chiramiz
+        if created:
+            liked = True
+        else:
             like.delete()
             liked = False
-        else:
-            liked = True
 
+        # 4. Like sonini hisoblab modelga saqlaymiz (Xuddi News-dagi kabi)
+        announcement.like_count = announcement.likes.count()
+        announcement.save(update_fields=['like_count'])
+
+        # 5. Natijani qaytaramiz
         return Response({
             "liked": liked,
-            "like_count": AnnouncementLike.objects.filter(
-                announcement=announcement
-            ).count()
-        }, status=status.HTTP_200_OK)
-        
-        
-class AnnouncementLikeCountView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request, pk):
-        announcement = get_object_or_404(Announcement, pk=pk)
-        return Response({
-            "like_count": announcement.likes.count()
-        })
-
-
+            "like_count": announcement.like_count
+        }, status=200)
 
 
 class KorrupsiyaViewSet(viewsets.ModelViewSet):
     serializer_class = KorrupsiyaSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsNewsEditorOrReadOnly]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+
+    search_fields = [
+        "title",
+        "description",
+        "fullContent",
+    ]
+
+    filterset_fields = {
+        "category": ["exact"], 
+        "title": ["exact"],
+        "publishedAt": ["gte", "lte"],        
+    }
+    
+    ordering_fields = [
+        "publishedAt",
+        "like_count",
+        "title",
+    ]
+       
+    
 
     def get_queryset(self):
         lang = self.kwargs.get('lang', 'uz')
@@ -604,10 +774,23 @@ class KorrupsiyaViewSet(viewsets.ModelViewSet):
         lang = self.kwargs.get('lang', 'uz')
         serializer.save(language=lang)
         
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        identifier = get_client_ip(request)
+
+        KorrupsiyaView.objects.get_or_create(
+            korrupsiya=instance,
+            session_key=identifier
+        )
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+        
         
 class KorrupsiyaCommentViewSet(viewsets.ModelViewSet):
     serializer_class = KorrupsiyaCommentSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsVerifiedSimpleUser]
 
     def get_queryset(self):
         korrupsiya_id = self.request.query_params.get('korrupsiya_id')
@@ -618,47 +801,56 @@ class KorrupsiyaCommentViewSet(viewsets.ModelViewSet):
 
         return qs
     
-class KorrupsiyaLikeToggleView(APIView):
-    permission_classes = [permissions.AllowAny]
+    
+    def perform_create(self, serializer):
+        try:
+            simple_user = SimpleUser.objects.get(phone=self.request.user.username)
+            full_name = f"{simple_user.first_name} {simple_user.last_name}"
+            serializer.save(author=full_name)
+        except SimpleUser.DoesNotExist:
+            serializer.save(author="Noma'lum foydalanuvchi")
+
+    def retrieve(self, request, *args, **kwargs):
+        ann_id = kwargs.get('pk') 
+
+        comments = KorrupsiyaComment.objects.filter(korrupsiya_id=ann_id).order_by('-timestamp')
+        serializer = self.get_serializer(comments, many=True)
+        return Response(serializer.data)
+    
+    
+class KorrupsiyaLikeView(APIView):
+    permission_classes = [IsVerifiedSimpleUser] # Faqat tasdiqlangan SimpleUser
 
     def post(self, request, pk):
         korrupsiya = get_object_or_404(Korrupsiya, pk=pk)
+        
+        try:
+            simple_user = SimpleUser.objects.get(phone=request.user.username)
+        except SimpleUser.DoesNotExist:
+            return Response({"error": "Faqat SimpleUser like bosishi mumkin"}, status=403)
 
-        # session yo‘q bo‘lsa yaratamiz
-        if not request.session.session_key:
-            request.session.create()
+        session_key = simple_user.phone
 
-        session_key = request.session.session_key
-
+        # Like toggle
         like, created = KorrupsiyaLike.objects.get_or_create(
             korrupsiya=korrupsiya,
             session_key=session_key
         )
 
         if not created:
-            # Like bor edi → o‘chiramiz
             like.delete()
             liked = False
         else:
             liked = True
 
+        # Modelda like_count ni yangilash
+        korrupsiya.like_count = korrupsiya.likes.count()
+        korrupsiya.save(update_fields=['like_count'])
+
         return Response({
             "liked": liked,
-            "like_count": KorrupsiyaLike.objects.filter(
-                korrupsiya=korrupsiya
-            ).count()
-        }, status=status.HTTP_200_OK)
-        
-class KorrupsiyaLikeCountView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request, pk):
-        korrupsiya = get_object_or_404(Korrupsiya, pk=pk)
-        return Response({
-            "like_count": korrupsiya.likes.count()
-        })
-        
-        
+            "like_count": korrupsiya.like_count
+        }, status=200) 
         
         
         
@@ -668,161 +860,264 @@ class SimpleUserViewSet(viewsets.ModelViewSet):
     queryset = SimpleUser.objects.all()
 
     def get_serializer_class(self):
-        if self.action == 'verify_code':
+        if self.action == 'register':
+            return SimpleUserSerializer
+        elif self.action == 'login_by_phone':
+            return LoginByPhoneSerializer
+        elif self.action == 'verify_code':
             return VerifyCodeSerializer
+        elif self.action == 'login_simple':
+            return SimplePhoneLoginSerializer
+        if self.action == 'me':
+            return SimpleUserSerializer
         return SimpleUserSerializer
 
-    # 1-QADAM: Ro'yxatdan o'tish
+    
+    @action(detail=False, methods=['get', 'put', 'patch'])
+    def me(self, request):
+        try:
+            user = SimpleUser.objects.get(phone=request.user.username)
+        except SimpleUser.DoesNotExist:
+            return Response({"error": "Profil topilmadi"}, status=404)
+
+        if request.method == 'GET':
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+
+        elif request.method in ['PUT', 'PATCH']:
+            partial = (request.method == 'PATCH')
+            serializer = self.get_serializer(user, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
+    # 1. REGISTER
     @action(detail=False, methods=['post'])
     def register(self, request):
         first_name = request.data.get("first_name")
         last_name = request.data.get("last_name")
         phone = request.data.get("phone")
 
+        # 1. Ma'lumotlar to'liqligini tekshirish
         if not (first_name and last_name and phone):
-            return Response(
-                {"error": "Ma'lumotlar to'liq emas"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Ma'lumotlar to'liq emas"}, status=400)
 
-        # 1. Telefon bazada bormi tekshirish
-        existing_user = SimpleUser.objects.filter(phone=phone).first()
-        if existing_user and existing_user.is_verified:
-            return Response(
-                {
-                    "message": "Siz allaqachon ro'yxatdan o'tgansiz",
-                    "user": SimpleUserSerializer(existing_user).data
-                },
-                status=status.HTTP_200_OK
-            )
+        # 2. Telefon raqami formatini tekshirish (+ belgi va 12 ta raqam)
+        # Masalan: +998931090509
+        phone_pattern = r'^\+\d{12}$'
+        if not re.match(phone_pattern, phone):
+            return Response({
+                "error": "Telefon raqami noto'g'ri formatda. Namuna: +998931234567"
+            }, status=400)
 
-        # 2. AVVAL KODNI GENERATSIYA QILAMIZ
+        # 3. Bazada bor yoki yo'qligini tekshirish
+        if SimpleUser.objects.filter(phone=phone).exists():
+            return Response({
+                "error": "Bu telefon raqami bilan foydalanuvchi allaqachon ro'yxatdan o'tgan"
+            }, status=400)
+
+        # Kod yaratish va SMS yuborish
         code = PhoneVerification.generate_code()
-
-        # 3. ENDI KODNI SMS ORQALI YUBORAMIZ
         sms_text = f"uzmetro.uz saytiga ro'yhatdan o'tish uchun tasdiqlash kodi: {code}"
-        sms_response = send_sms_via_eskiz(phone, sms_text)
-
-        if not sms_response:
-            return Response(
-                {"error": "SMS yuborishda xatolik yuz berdi"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-        # 4. KESHGA SAQLASH (10 daqiqa)
-        cache.set(
-            f"sms_verify_{code}",
-            {
+        
+        if send_sms_via_eskiz(phone, sms_text):
+            # Keshda 'purpose' (maqsad) bilan saqlaymiz
+            cache.set(f"sms_auth_{code}", {
+                "phone": phone,
                 "first_name": first_name,
                 "last_name": last_name,
-                "phone": phone
-            },
-            timeout=600
-        )
-
-        return Response(
-            {
-                "message": "SMS yuborildi. Kodni tasdiqlang.",
-                # "code_for_test": code 
-            },
-            status=status.HTTP_200_OK
-        )
-
-
-    # 2-QADAM: Tasdiqlash
-    @action(detail=False, methods=['post'])
-    def verify_code(self, request):
-        serializer = VerifyCodeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+                "action": "register"
+            }, timeout=120)
+            return Response({"message": "Ro'yxatdan o'tish uchun SMS yuborildi."}, status=200)
         
-        code = serializer.validated_data['code']
-        user_data = cache.get(f"sms_verify_{code}")
+        return Response({"error": "SMS yuborishda xatolik"}, status=500)
 
-        if not user_data:
-            return Response({"error": "Kod xato yoki muddati o'tgan"}, status=400)
-
-        # 1. SimpleUser-ga ma'lumotni saqlaymiz (Statistika uchun)
-        simple_user, _ = SimpleUser.objects.update_or_create(
-            phone=user_data['phone'],
-            defaults={
-                "first_name": user_data['first_name'],
-                "last_name": user_data['last_name'],
-                "is_verified": True
-            }
-        )
-
-        main_user, created = CustomUser.objects.get_or_create(
-            username=user_data['phone'], # Telefon raqami username bo'ladi
-            defaults={
-                "first_name": user_data['first_name'],
-                "last_name": user_data['last_name'],
-                "role": 'simple',       # Agar CustomUser-da role maydoni bo'lsa
-                "is_verified": True      
-            }
-        )
-
-        # Agar foydalanuvchi yangi bo'lsa, unga default parol o'rnatamiz
-        if created:
-            main_user.set_password(user_data['phone']) 
-            main_user.save()
-
-        # 3. TOKENNI ASOSIY USER UCHUN GENERATSIYA QILAMIZ
-        refresh = RefreshToken.for_user(main_user)
-
-        # 4. Keshni o'chirish
-        cache.delete(f"sms_verify_{code}")
-
-        return Response({
-            "message": "Tabriklaymiz, ro'yxatdan o'tdingiz!",
-            "access": str(refresh.access_token), 
-            "refresh": str(refresh),
-            "user": SimpleUserSerializer(simple_user).data 
-        }, status=status.HTTP_201_CREATED)
-        
-        
-    @extend_schema(
-        request=LoginByPhoneSerializer,
-        responses={200: SimpleUserSerializer},
-        description="Telefon raqami orqali yangi Access Token olish"
-    )
+    # 2. LOGIN BY PHONE
     @action(detail=False, methods=['post'])
     def login_by_phone(self, request):
         serializer = LoginByPhoneSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        phone = serializer.validated_data.get("phone")
+        phone = serializer.validated_data['phone']
 
-        # 1. Avval SimpleUser jadvalida borligini tekshiramiz
-        simple_user = SimpleUser.objects.filter(phone=phone, is_verified=True).first()
-        
-        if not simple_user:
+        # Bazada borligini tekshirish
+        user_exists = SimpleUser.objects.filter(phone=phone, is_verified=True).exists()
+        if not user_exists:
             return Response({"error": "Foydalanuvchi topilmadi. Avval ro'yxatdan o'ting."}, status=404)
 
-        # 2. Agar SimpleUser'da bo'lsa-yu, CustomUser'da bo'lmasa - yaratamiz (Sync qilish)
-        user, created = CustomUser.objects.get_or_create(
-            username=phone,
-            defaults={
-                "first_name": simple_user.first_name,
-                "last_name": simple_user.last_name,
-                "role": 'simple',
-                "is_verified": True
-            }
-        )
+        code = PhoneVerification.generate_code()
+        sms_text = f"uzmetro.uz saytiga kirish uchun tasdiqlash kodi:  {code}"
 
-        # Yangi yaratilgan bo'lsa parol o'rnatamiz
-        if created:
-            user.set_password(phone)
-            user.save()
+        if send_sms_via_eskiz(phone, sms_text):
+            cache.set(f"sms_auth_{code}", {
+                "phone": phone,
+                "action": "login"
+            }, timeout=600)
+            return Response({"message": "Kirish uchun SMS yuborildi."}, status=200)
+        
+        return Response({"error": "SMS yuborishda xatolik"}, status=500)
 
-        # 3. Endi bemalol token beramiz
-        refresh = RefreshToken.for_user(user)
+    # 3. UNIVERSAL VERIFY (Ikkalasi uchun bitta)
+    @action(detail=False, methods=['post'])
+    def verify_code(self, request):
+        serializer = VerifyCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        code = serializer.validated_data['code']
+
+        data = cache.get(f"sms_auth_{code}")
+        if not data:
+            return Response({"error": "Kod xato yoki muddati o'tgan"}, status=400)
+
+        phone = data['phone']
+
+        if data['action'] == "register":
+            # Ro'yxatdan o'tkazish logikasi
+            simple_user, _ = SimpleUser.objects.update_or_create(
+                phone=phone,
+                defaults={"first_name": data['first_name'], "last_name": data['last_name'], "is_verified": True}
+            )
+            main_user, created = CustomUser.objects.get_or_create(
+                username=phone,
+                defaults={"first_name": data['first_name'], "last_name": data['last_name'], "is_verified": True}
+            )
+            if created:
+                main_user.set_password(phone)
+                main_user.save()
+        else:
+            # Login logikasi
+            simple_user = SimpleUser.objects.get(phone=phone)
+            main_user = CustomUser.objects.get(username=phone)
+
+        # Token yaratish
+        refresh = RefreshToken.for_user(main_user)
+        
+        refresh.access_token.set_exp(lifetime=timedelta(days=60))
+        refresh.set_exp(lifetime=timedelta(days=60))
+        cache.delete(f"sms_auth_{code}")
 
         return Response({
-            "message": "Xush kelibsiz!",
+            "message": f"Xush kelibsiz, {simple_user.first_name}!",
             "access": str(refresh.access_token),
             "refresh": str(refresh),
             "user": SimpleUserSerializer(simple_user).data
+        }, status=200)  
+        
+        
+        
+    @action(detail=False, methods=['post'], url_path='login-simple')
+    def login_simple(self, request):
+        serializer = SimplePhoneLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        phone = serializer.validated_data['phone']
+
+        # SimpleUser ni bazadan olamiz
+        try:
+            simple_user = SimpleUser.objects.get(phone=phone)
+        except SimpleUser.DoesNotExist:
+            return Response(
+                {"error": "Bunday telefon raqam bilan foydalanuvchi topilmadi"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not simple_user.is_verified:
+            return Response(
+                {"error": "Telefon raqam tasdiqlanmagan"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # CustomUser ni olamiz (token uchun)
+        try:
+            main_user = CustomUser.objects.get(username=phone)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "Asosiy foydalanuvchi topilmadi"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # JWT tokenlar
+        refresh = RefreshToken.for_user(main_user)
+        refresh.access_token.set_exp(lifetime=timedelta(days=60))
+        refresh.set_exp(lifetime=timedelta(days=60))
+
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "first_name": simple_user.first_name,
+                "last_name": simple_user.last_name,
+                "phone": simple_user.phone,
+                "is_verified": simple_user.is_verified
+            }
         }, status=status.HTTP_200_OK)
+
+   
+class FrontendImagesAPIView(APIView):
+    def get(self, request):
+        images = FrontendImage.objects.all()
+
+        data = {}
+
+        for img in images:
+            if img.section not in data:
+                data[img.section] = []
+
+            data[img.section].append(
+                request.build_absolute_uri(img.image.url)
+            )
+
+        return Response(data)
+
         
+  
+
+
+class MediaPhotosAPIView(APIView):
+    def get(self, request, lang='uz'):
+        qs = MediaPhoto.objects.filter(language=lang)
+        serializer = MediaPhotoSerializer(qs, many=True, context={"request": request})
+        return Response(serializer.data)
+
+class MediaVideosAPIView(APIView):
+    def get(self, request, lang='uz'):
+        qs = MediaVideo.objects.filter(language=lang)
         
+        # Statistika yangilash (agar kerak bo'lsa)
+        stat = FoydalanuvchiStatistika.objects.first()
+        jami_kirishlar = str(stat.jami_kirishlar if stat else 0)
         
+        # Viewsni avtomatik yangilab chiqish
+        qs.update(views=jami_kirishlar)
+
+        serializer = MediaVideoSerializer(qs, many=True, context={"request": request})
+        return Response(serializer.data)    
+    
+
+
+class StationFrontListAPIView(APIView):
+    def get(self, request):
+        stations = StationFront.objects.all()
+        result = {}
+        for station in stations:
+            serializer = StationFrontSerializer(station, context={'request': request})
+            result[station.name] = serializer.data
+        return Response(result)
+    
+
+
+
+class ManagementListAPIView(generics.ListAPIView):
+    serializer_class = ManagementSerializer
+
+    def get_queryset(self):
+        # URL'dagi <str:lang> dan qiymatni oladi
+        lang = self.kwargs.get('lang', 'uz') 
+        return Management.objects.filter(language=lang)
+    
+    
+class DepartmentListAPIView(generics.ListAPIView):
+    serializer_class = DepartmentSerializer
+
+    def get_queryset(self):
+        lang = self.kwargs.get('lang', 'uz')
+        return Department.objects.filter(language=lang)
     

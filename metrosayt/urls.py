@@ -18,15 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
+# from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from home.admin import role_based_admin
 
 
 urlpatterns = [
-    path('supersecretadmin/', admin.site.urls),
+    path('supersecretadmin/', role_based_admin.urls),
     path('api/', include('home.urls')),
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    # path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    # path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
 
 
